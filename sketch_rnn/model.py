@@ -4,7 +4,7 @@ import torch.nn.utils.rnn as rnn_utils
 
 from .rnn import _cell_types
 from .mix_layer import MixLayer
-from .objective import KLLoss
+from .objective import KLLoss, GMMLoss
 
 
 
@@ -50,6 +50,7 @@ class SketchRNN(nn.Module):
             R=hps.kl_decay_rate,
             kl_min=hps.kl_tolerance
         )
+        self.gmm_loss = GMMLoss()
         self.max_len = hps.max_seq_len
         self.hps = hps
 

@@ -1,6 +1,9 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
+
+# ---- KL Divergence loss ----
 
 def kl_divergence(mean, logvar):
     kl = -0.5 * (1 + logvar - mean ** 2 - torch.exp(logvar))
@@ -31,3 +34,27 @@ class KLLoss(nn.Module):
         loss = loss.clamp(self.kl_min, float('inf'))
         loss = self.weight * loss
         return loss
+
+
+# ---- GMM Loss ----
+
+def mvn_log_prob(x, means, scales, corrs):
+    x_diff = x.unsqueeze(-2) - means # (...,k,d)
+    Z1 = torch.sum(x_diff**2/scales**2, -1) # (...,k)
+    Z2 = 2*corrs*torch.prod(x_diff,-1)/torch.prod(scales,-1) # (...,k)
+    mvn_logprobs1 = -(Z1-Z2)/(2*(1-corrs**2)) # (...,k)
+    mvn_logprobs2 = -torch.log(2*np.pi*torch.prod(scales,-1)*torch.sqrt(1-corrs**2)) # (...,k)
+    mvn_logprobs = mvn_logprobs1 + mvn_logprobs2 # (...,k)
+
+    return mvn_logprobs
+
+class GMMLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x, params):
+        mix_logp, means, scales, corrs = params
+        mvn_logp = mvn_log_prob(x, means, scales, corrs) # [...,k]
+        logp = torch.logsumexp(mix_logp + mvn_logp, dim=-1) # [...]
+        losses = -logp
+        return losses
