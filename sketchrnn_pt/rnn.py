@@ -6,6 +6,13 @@ import torch.nn.functional as F
 __all__ = ['LSTMCell', 'LayerNormLSTMCell']
 
 
+
+def init_orthogonal_(weight, hsize):
+    assert weight.size(0) == 4*hsize
+    for i in range(4):
+        nn.init.orthogonal_(weight[i*hsize:(i+1)*hsize])
+
+
 # ---- LSTMCell ----
 
 class LSTMCell(nn.Module):
@@ -29,9 +36,7 @@ class LSTMCell(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight_ih)
-        for i in range(4):
-            start, end = i*self.hidden_size, (i+1)*self.hidden_size
-            nn.init.orthogonal_(self.weight_hh[start:end])
+        init_orthogonal_(self.weight_hh, hsize=self.hidden_size)
         nn.init.zeros_(self.bias)
 
     def forward(self, x, state):
@@ -103,9 +108,7 @@ class LayerNormLSTMCell(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight_ih)
-        for i in range(4):
-            start, end = i*self.hidden_size, (i+1)*self.hidden_size
-            nn.init.orthogonal_(self.weight_hh[start:end])
+        init_orthogonal_(self.weight_hh, hsize=self.hidden_size)
         self.layernorm_h.reset_parameters()
         self.layernorm_c.reset_parameters()
 
@@ -219,9 +222,7 @@ class HyperLSTMCell(nn.Module):
     def reset_parameters(self):
         self.hyper_cell.reset_parameters()
         nn.init.xavier_uniform_(self.weight_ih)
-        for i in range(4):
-            start, end = i*self.hidden_size, (i+1)*self.hidden_size
-            nn.init.orthogonal_(self.weight_hh[start:end])
+        init_orthogonal_(self.weight_hh, hsize=self.hidden_size)
         if self.layer_norm:
             self.layernorm_h.reset_parameters()
             self.layernorm_c.reset_parameters()
