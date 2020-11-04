@@ -6,6 +6,8 @@ import torch.nn.functional as F
 __all__ = ['LSTMCell', 'LayerNormLSTMCell']
 
 
+# ---- LSTMCell ----
+
 class LSTMCell(nn.Module):
     """
     LSTM cell with optional recurrent dropout.
@@ -26,9 +28,8 @@ class LSTMCell(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        stdv = 1.0 / math.sqrt(self.hidden_size)
-        nn.init.uniform_(self.weight_ih, -stdv, stdv)
-        nn.init.uniform_(self.weight_hh, -stdv, stdv)
+        nn.init.xavier_uniform_(self.weight_ih)
+        nn.init.orthogonal_(self.weight_hh)
         nn.init.zeros_(self.bias)
 
     def forward(self, x, state):
@@ -49,6 +50,8 @@ class LSTMCell(nn.Module):
         h = o_gate * torch.tanh(c)
 
         return h, c
+
+
 
 # ---- LayerNormLSTMCell ----
 
@@ -96,9 +99,8 @@ class LayerNormLSTMCell(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        stdv = 1.0 / math.sqrt(self.hidden_size)
-        nn.init.uniform_(self.weight_ih, -stdv, stdv)
-        nn.init.uniform_(self.weight_hh, -stdv, stdv)
+        nn.init.xavier_uniform_(self.weight_ih)
+        nn.init.orthogonal_(self.weight_hh)
         for m in [self.layernorm_i, self.layernorm_h, self.layernorm_c]:
             m.reset_parameters()
 
