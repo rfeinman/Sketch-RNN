@@ -178,15 +178,6 @@ def layer_norm(x,
   return output
 
 
-def raw_layer_norm(x, epsilon=1e-3):
-  axes = [1]
-  mean = tf.reduce_mean(x, axes, keep_dims=True)
-  std = tf.sqrt(
-      tf.reduce_mean(tf.square(x - mean), axes, keep_dims=True) + epsilon)
-  output = (x - mean) / (std)
-  return output
-
-
 def super_linear(x,
                  output_size,
                  scope=None,
