@@ -273,3 +273,8 @@ class HyperLSTMCell(nn.Module):
 
         return h, state
 
+_cell_types = {
+    'lstm' : LSTMCell,
+    'layer_norm' : LayerNormLSTMCell,
+    'hyper' : HyperLSTMCell
+}
