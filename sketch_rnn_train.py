@@ -25,8 +25,8 @@ import six
 from six.moves.urllib.request import urlretrieve
 import tensorflow.compat.v1 as tf
 
-from sketchrnn_tf import model as sketch_rnn_model
-from sketchrnn_tf import utils
+from sketch_rnn_tf import model as sketch_rnn_model
+from sketch_rnn_tf import utils
 
 
 tf.logging.set_verbosity(tf.logging.INFO)
