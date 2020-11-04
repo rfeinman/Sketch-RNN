@@ -41,14 +41,14 @@ class LSTMCell(nn.Module):
         linear = Wi + Wh + self.bias
 
         # split and apply activations
-        i_gate, f_gate, o_gate, c_new = linear.chunk(4, 1)
+        i_gate, f_gate, o_gate, c_cand = linear.chunk(4, 1)
         i_gate = torch.sigmoid(i_gate)
         f_gate = torch.sigmoid(f_gate + self.forget_bias)
         o_gate = torch.sigmoid(o_gate)
-        c_new = torch.tanh(c_new)
+        c_cand = torch.tanh(c_cand)
 
         # update hidden and cell states
-        c = f_gate * c + i_gate * self.r_dropout(c_new)
+        c = f_gate * c + i_gate * self.r_dropout(c_cand)
         h = o_gate * torch.tanh(c)
 
         return h, c
@@ -115,14 +115,14 @@ class LayerNormLSTMCell(nn.Module):
         linear = self.layernorm_h(Wi + Wh)
 
         # split and apply activations
-        i_gate, f_gate, o_gate, c_new = linear.chunk(4, 1)
+        i_gate, f_gate, o_gate, c_cand = linear.chunk(4, 1)
         i_gate = torch.sigmoid(i_gate)
         f_gate = torch.sigmoid(f_gate + self.forget_bias)
         o_gate = torch.sigmoid(o_gate)
-        c_new = torch.tanh(c_new)
+        c_cand = torch.tanh(c_cand)
 
         # update hidden and cell states
-        c = f_gate * c + i_gate * self.r_dropout(c_new)
+        c = f_gate * c + i_gate * self.r_dropout(c_cand)
         h = o_gate * torch.tanh(self.layernorm_c(c))
 
         return h, c
