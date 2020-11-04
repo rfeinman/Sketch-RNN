@@ -4,6 +4,7 @@ import torch.nn.utils.rnn as rnn_utils
 
 from .rnn import _cell_types
 from .mix_layer import MixLayer
+from .objective import KLLoss
 
 
 
@@ -43,6 +44,12 @@ class SketchRNN(nn.Module):
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         self.state_init = nn.Sequential(hps.z_size, self.cell.state_size)
         self.mix_layer = MixLayer(hps.dec_rnn_size, k=hps.num_mixture)
+        self.kl_loss = KLLoss(
+            hps.kl_weight,
+            eta_min=hps.kl_weight_start,
+            R=hps.kl_decay_rate,
+            kl_min=hps.kl_tolerance
+        )
         self.max_len = hps.max_seq_len
         self.hps = hps
 
