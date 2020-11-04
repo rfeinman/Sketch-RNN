@@ -29,7 +29,9 @@ class LSTMCell(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight_ih)
-        nn.init.orthogonal_(self.weight_hh)
+        for i in range(4):
+            start, end = i*self.hidden_size, (i+1)*self.hidden_size
+            nn.init.orthogonal_(self.weight_hh[start:end])
         nn.init.zeros_(self.bias)
 
     def forward(self, x, state):
@@ -100,9 +102,11 @@ class LayerNormLSTMCell(nn.Module):
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.weight_ih)
-        nn.init.orthogonal_(self.weight_hh)
-        for m in [self.layernorm_i, self.layernorm_h, self.layernorm_c]:
-            m.reset_parameters()
+        for i in range(4):
+            start, end = i*self.hidden_size, (i+1)*self.hidden_size
+            nn.init.orthogonal_(self.weight_hh[start:end])
+        self.layernorm_h.reset_parameters()
+        self.layernorm_c.reset_parameters()
 
     def forward(self, x, state):
         h, c = state
