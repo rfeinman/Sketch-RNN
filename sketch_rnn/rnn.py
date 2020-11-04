@@ -217,6 +217,8 @@ class HyperLSTMCell(nn.Module):
         self.hidden_size = hidden_size
         self.forget_bias = forget_bias
         self.layer_norm = layer_norm
+        self.hyper_hidden_size = hyper_hidden_size
+        self.hyper_embed_size = hyper_embed_size
         self.reset_parameters()
 
     def reset_parameters(self):
