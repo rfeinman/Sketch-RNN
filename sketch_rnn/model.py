@@ -33,7 +33,7 @@ class Encoder(nn.Module):
         return z, z_mean, z_logvar
 
 
-class Model(nn.Module):
+class SketchRNN(nn.Module):
     def __init__(self, hps):
         super().__init__()
         # Decoder LSTM
