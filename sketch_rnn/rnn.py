@@ -241,7 +241,7 @@ class HyperLSTMCell(nn.Module):
         c, c_hyper = c_total.split((self.hidden_size, self.hyper_hidden_size), 1)
 
         # hyper forward
-        h_hyper, c_hyper = self.hyper_cell(x, (h_hyper, c_hyper))
+        _, (h_hyper, c_hyper) = self.hyper_cell(x, (h_hyper, c_hyper))
 
         # main forward
         Wx = torch.mm(x, self.weight_ih.t())
