@@ -200,17 +200,17 @@ class HyperLSTMCell(nn.Module):
         # hypernorm layers
         def norm_init(use_bias):
             return HyperNorm(hyper_hidden_size, hyper_embed_size, hidden_size, use_bias)
-        self.norms_i = nn.ModuleList([
-            norm_init(use_bias=True),
-            norm_init(use_bias=True),
-            norm_init(use_bias=True),
-            norm_init(use_bias=True)
-        ])
-        self.norms_h = nn.ModuleList([
+        self.norms_x = nn.ModuleList([
             norm_init(use_bias=False),
             norm_init(use_bias=False),
             norm_init(use_bias=False),
             norm_init(use_bias=False)
+        ])
+        self.norms_h = nn.ModuleList([
+            norm_init(use_bias=True),
+            norm_init(use_bias=True),
+            norm_init(use_bias=True),
+            norm_init(use_bias=True)
         ])
         # misc
         self.input_size = input_size
@@ -228,7 +228,7 @@ class HyperLSTMCell(nn.Module):
             self.layernorm_c.reset_parameters()
         else:
             nn.init.zeros_(self.bias)
-        for norm in self.norms_i:
+        for norm in self.norms_x:
             norm.reset_parameters()
         for norm in self.norms_h:
             norm.reset_parameters()
@@ -245,7 +245,7 @@ class HyperLSTMCell(nn.Module):
         Wx = torch.mm(x, self.weight_ih.t())
         Wh = torch.mm(h, self.weight_hh.t())
 
-        gates_x = [norm(gate,h_hyper) for norm,gate in zip(self.norms_i, Wx.chunk(4,1))]
+        gates_x = [norm(gate,h_hyper) for norm,gate in zip(self.norms_x, Wx.chunk(4,1))]
         gates_h = [norm(gate,h_hyper) for norm,gate in zip(self.norms_h, Wh.chunk(4,1))]
         gates = [gx+gh for gx,gh in zip(gates_x, gates_h)]
         if self.layer_norm:
