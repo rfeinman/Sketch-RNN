@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 # ---- KL Divergence loss ----
 
@@ -48,13 +48,20 @@ def mvn_log_prob(x, means, scales, corrs):
 
     return mvn_logprobs
 
-class GMMLoss(nn.Module):
+class DrawingLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, params):
-        mix_logp, means, scales, corrs = params
-        mvn_logp = mvn_log_prob(x, means, scales, corrs) # [...,k]
-        logp = torch.logsumexp(mix_logp + mvn_logp, dim=-1) # [...]
-        losses = -logp
+    def forward(self, x, v, params):
+        mix_logp, means, scales, corrs, v_logp = params
+        # mixture losses
+        mvn_logp = mvn_log_prob(x, means, scales, corrs) # [batch,step,mix]
+        logp = torch.logsumexp(mix_logp + mvn_logp, dim=-1) # [batch,step]
+        losses_x = -logp
+        # pen action category loss
+        losses_v = F.nll_loss(v_logp.flatten(0,1), v.flatten(), reduction='none')
+        losses_v = losses_v.reshape(v.shape) # [batch,step]
+        # total
+        losses = losses_x + losses_v
+
         return losses
