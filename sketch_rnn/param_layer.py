@@ -3,6 +3,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+__all__ = ['ParameterLayer']
+
 
 class ParameterLayer(nn.Module):
     def __init__(self, input_size, k, d=2, reg_cov=0.):
