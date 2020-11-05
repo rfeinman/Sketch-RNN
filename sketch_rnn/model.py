@@ -39,13 +39,20 @@ class Encoder(nn.Module):
 class SketchRNN(nn.Module):
     def __init__(self, hps):
         super().__init__()
-        # Decoder LSTM
+        # check inputs
+        assert hps.enc_model in ['lstm', 'layer_norm', 'hyper']
         assert hps.dec_model in ['lstm', 'layer_norm', 'hyper']
+        if hps.enc_model in ['layer_norm', 'hyper']:
+            raise NotImplementedError('LayerNormLSTM and HyperLSTM not yet '
+                                      'implemented for bi-directional encoder.')
         cell_init = _cell_types[hps.dec_model]
-        self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
+        # encoder modules
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
+        # decoder modules
+        self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
         self.init = nn.Linear(hps.z_size, self.cell.state_size)
         self.param_layer = ParameterLayer(hps.dec_rnn_size, k=hps.num_mixture)
+        # loss modules
         self.loss_kl = KLLoss(
             hps.kl_weight,
             eta_min=hps.kl_weight_start,
