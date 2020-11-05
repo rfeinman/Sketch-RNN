@@ -11,6 +11,10 @@ class MixLayer(nn.Module):
         self.k = k
         self.d = d
         self.reg_cov = reg_cov
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.linear.reset_parameters()
 
     def forward(self, x, T=1):
         x = self.linear(x)

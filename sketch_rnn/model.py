@@ -43,7 +43,7 @@ class SketchRNN(nn.Module):
         cell_init = _cell_types[hps.dec_model]
         self.cell = cell_init(5, hps.dec_rnn_size, r_dropout=hps.r_dropout)
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
-        self.state_init = nn.Sequential(hps.z_size, self.cell.state_size)
+        self.init = nn.Linear(hps.z_size, self.cell.state_size)
         self.mix_layer = MixLayer(hps.dec_rnn_size, k=hps.num_mixture)
         self.loss_kl = KLLoss(
             hps.kl_weight,
@@ -52,10 +52,18 @@ class SketchRNN(nn.Module):
             kl_min=hps.kl_tolerance
         )
         self.loss_draw = DrawingLoss()
-        self.hps = hps
+        self.max_len = hps.max_seq_len
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.cell.reset_parameters()
+        self.encoder.reset_parameters()
+        nn.init.normal_(self.init.weight, 0., 0.001)
+        nn.init.zeros_(self.init.bias)
+        self.mix_layer.reset_parameters()
 
     def forward(self, data, lengths=None):
-        max_len = self.hps.max_seq_len
+        max_len = self.max_len
 
         # The target/expected vectors of strokes
         enc_inputs = data[:,1:max_len+1,:]
@@ -66,7 +74,7 @@ class SketchRNN(nn.Module):
         z, z_mean, z_logvar = self.encoder(enc_inputs, lengths)
 
         # initialize decoder state
-        state = self.state_init(z).chunk(2, -1)
+        state = torch.tanh(self.init(z)).chunk(2, -1)
 
         # decoder forward
         dec_inputs = dec_inputs.unbind(1)
