@@ -9,3 +9,6 @@ An [initial PyTorch implementation](https://github.com/alexis-jacq/Pytorch-Sketc
 2. Recurrent dropout. Jacq's implementation does not use dropout of any kind (`dropout=x` is passed to `nn.LSTM`, but this has no effect for a single-layer lstm). Here, I take care to implement the recurrent dropout technique from Sketch-RNN.
 3. Layer normalization. My custom LSTM cells implement layer normalization exactly as the official repo.
 4. HyperLSTM. I have also implemented the HyperLSTM model used for the Sketch-RNN decoder.
+
+## Incomplete items
+1. Encoder LSTM. I have not yet implemented recurrent dropout and layer normalization for the bi-directional encoder LSTM.
