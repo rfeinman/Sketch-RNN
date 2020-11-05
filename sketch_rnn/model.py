@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.utils.rnn as rnn_utils
 
 from .rnn import _cell_types
-from .mix_layer import MixLayer
+from .param_layer import MixLayer
 from .objective import KLLoss, DrawingLoss
 
 __all__ = ['SketchRNN', 'model_step']
