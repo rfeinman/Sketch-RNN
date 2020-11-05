@@ -197,13 +197,13 @@ def get_max_len(strokes):
 class DataLoader:
     """Class for loading data."""
     def __init__(self,
-               strokes,
-               batch_size=100,
-               max_seq_length=250,
-               scale_factor=1.0,
-               random_scale_factor=0.0,
-               augment_stroke_prob=0.0,
-               limit=1000):
+                 strokes,
+                 batch_size=100,
+                 max_seq_length=250,
+                 scale_factor=1.0,
+                 random_scale_factor=0.0,
+                 augment_stroke_prob=0.0,
+                 limit=1000):
         self.batch_size = batch_size  # minibatch size
         self.max_seq_length = max_seq_length  # N_max in sketch-rnn paper
         self.scale_factor = scale_factor  # divide offsets by this factor
