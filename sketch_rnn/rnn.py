@@ -39,6 +39,10 @@ class LSTMCell(nn.Module):
         init_orthogonal_(self.weight_hh, hsize=self.hidden_size)
         nn.init.zeros_(self.bias)
 
+    @property
+    def state_size(self):
+        return 2 * self.hidden_size
+
     def forward(self, x, state):
         h, c = state
         Wi = torch.mm(x, self.weight_ih.t())
@@ -111,6 +115,10 @@ class LayerNormLSTMCell(nn.Module):
         init_orthogonal_(self.weight_hh, hsize=self.hidden_size)
         self.layernorm_h.reset_parameters()
         self.layernorm_c.reset_parameters()
+
+    @property
+    def state_size(self):
+        return 2 * self.hidden_size
 
     def forward(self, x, state):
         h, c = state
@@ -234,6 +242,10 @@ class HyperLSTMCell(nn.Module):
             norm.reset_parameters()
         for norm in self.norms_h:
             norm.reset_parameters()
+
+    @property
+    def state_size(self):
+        return 2 * (self.hidden_size + self.hyper_hidden_size)
 
     def forward(self, x, state):
         h_total, c_total = state
