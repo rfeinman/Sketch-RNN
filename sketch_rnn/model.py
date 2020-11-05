@@ -91,9 +91,9 @@ class SketchRNN(nn.Module):
         return params, z_mean, z_logvar
 
 
-def model_step(model, data):
+def model_step(model, data, lengths=None):
     # model forward
-    params, z_mean, z_logvar = model(data)
+    params, z_mean, z_logvar = model(data, lengths)
 
     # prepare targets
     targets = data[:,1:model.max_len+1,:]
@@ -103,7 +103,7 @@ def model_step(model, data):
 
     # compute losses
     loss_kl = model.loss_kl(z_mean, z_logvar)
-    loss_draw = model.loss_draw(x,v,params)
+    loss_draw = model.loss_draw(x, v, params)
     loss = loss_kl + loss_draw
 
     return loss
