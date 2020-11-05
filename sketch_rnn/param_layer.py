@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class MixLayer(nn.Module):
+class ParameterLayer(nn.Module):
     def __init__(self, input_size, k, d=2, reg_cov=0.):
         super().__init__()
         self.linear = nn.Linear(input_size, k + 2*k*d + k + 3)

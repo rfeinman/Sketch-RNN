@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.utils.rnn as rnn_utils
 
 from .rnn import _cell_types
-from .param_layer import MixLayer
+from .param_layer import ParameterLayer
 from .objective import KLLoss, DrawingLoss
 
 __all__ = ['SketchRNN', 'model_step']
@@ -45,7 +45,7 @@ class SketchRNN(nn.Module):
         self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         self.init = nn.Linear(hps.z_size, self.cell.state_size)
-        self.mix_layer = MixLayer(hps.dec_rnn_size, k=hps.num_mixture)
+        self.param_layer = ParameterLayer(hps.dec_rnn_size, k=hps.num_mixture)
         self.loss_kl = KLLoss(
             hps.kl_weight,
             eta_min=hps.kl_weight_start,
@@ -87,7 +87,7 @@ class SketchRNN(nn.Module):
         output = torch.stack(output, 1) # [batch,steps,dim]
 
         # mixlayer outputs
-        params = self.mix_layer(output)
+        params = self.param_layer(output)
 
         return params, z_mean, z_logvar
 
