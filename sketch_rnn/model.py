@@ -88,4 +88,22 @@ class SketchRNN(nn.Module):
         # mixlayer outputs
         params = self.mix_layer(output)
 
-        return params
+        return params, z_mean, z_logvar
+
+
+def model_step(model, data):
+    # model forward
+    params, z_mean, z_logvar = model(data)
+
+    # prepare targets
+    targets = data[:,1:model.max_len+1,:]
+    x, v_onehot = targets.split([2,3], -1)
+    assert torch.all(v_onehot.sum(-1) == 1)
+    v = v_onehot.argmax(-1)
+
+    # compute losses
+    loss_kl = model.loss_kl(z_mean, z_logvar)
+    loss_draw = model.loss_draw(x,v,params)
+    loss = loss_kl + loss_draw
+
+    return loss
