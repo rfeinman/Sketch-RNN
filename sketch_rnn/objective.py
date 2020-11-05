@@ -20,8 +20,8 @@ class KLLoss(nn.Module):
 
     @property
     def weight(self):
-        eta_step = 1. - self.factor
-        weight = self.kl_weight * eta_step
+        eta = 1. - self.factor
+        weight = self.kl_weight * eta
         if self.training:
             self.factor *= self.R
         return weight
