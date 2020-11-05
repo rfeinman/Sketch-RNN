@@ -1,9 +1,9 @@
 import math
 import warnings
 
-import torch
 from torch import Tensor
-from torch.nn import init, Module, Parameter
+import torch
+import torch.nn as nn
 from torch.nn.utils.rnn import PackedSequence
 
 
@@ -11,7 +11,7 @@ def apply_permutation(tensor, permutation, dim=1):
     return tensor.index_select(dim, permutation)
 
 
-class LSTM(Module):
+class LSTM(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers=1, bias=True,
                  batch_first=False, dropout=0., bidirectional=False):
         super().__init__()
@@ -36,12 +36,12 @@ class LSTM(Module):
             for direction in range(num_directions):
                 layer_input_size = input_size if layer == 0 else hidden_size * num_directions
 
-                w_ih = Parameter(torch.Tensor(4*hidden_size, layer_input_size))
-                w_hh = Parameter(torch.Tensor(4*hidden_size, hidden_size))
-                b_ih = Parameter(torch.Tensor(4*hidden_size))
+                w_ih = nn.Parameter(torch.Tensor(4*hidden_size, layer_input_size))
+                w_hh = nn.Parameter(torch.Tensor(4*hidden_size, hidden_size))
+                b_ih = nn.Parameter(torch.Tensor(4*hidden_size))
                 # Second bias vector included for CuDNN compatibility. Only one
                 # bias vector is needed in standard definition.
-                b_hh = Parameter(torch.Tensor(4*hidden_size))
+                b_hh = nn.Parameter(torch.Tensor(4*hidden_size))
                 layer_params = (w_ih, w_hh, b_ih, b_hh)
 
                 suffix = '_reverse' if direction == 1 else ''
@@ -128,7 +128,7 @@ class LSTM(Module):
     def reset_parameters(self):
         stdv = 1.0 / math.sqrt(self.hidden_size)
         for weight in self.parameters():
-            init.uniform_(weight, -stdv, stdv)
+            nn.init.uniform_(weight, -stdv, stdv)
 
     def check_input(self, input, batch_sizes):
         expected_input_dim = 2 if batch_sizes is not None else 3
