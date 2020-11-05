@@ -61,7 +61,7 @@ class SketchRNN(nn.Module):
         self.encoder.reset_parameters()
         nn.init.normal_(self.init.weight, 0., 0.001)
         nn.init.zeros_(self.init.bias)
-        self.mix_layer.reset_parameters()
+        self.param_layer.reset_parameters()
 
     def forward(self, data, lengths=None):
         max_len = self.max_len
