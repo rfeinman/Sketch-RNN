@@ -54,10 +54,12 @@ class LSTM(Module):
                     setattr(self, name, param)
                 self._flat_weights_names.extend(param_names)
                 self._all_weights.append(param_names)
-
-        self._flat_weights = [(lambda wn: getattr(self, wn) if hasattr(self, wn) else None)(wn) for wn in self._flat_weights_names]
+        self._flat_weights = list(map(self.get_attr, self._flat_weights_names))
         self.flatten_parameters()
         self.reset_parameters()
+
+    def get_attr(self, wn):
+        return getattr(self, wn) if hasattr(self, wn) else None
 
     def __setattr__(self, attr, value):
         if hasattr(self, "_flat_weights_names") and attr in self._flat_weights_names:
@@ -75,12 +77,13 @@ class LSTM(Module):
         if len(self._flat_weights) != len(self._flat_weights_names):
             return
 
+        # Short-circuits if any element in self._flat_weights is not a Tensor
         for w in self._flat_weights:
             if not isinstance(w, Tensor):
                 return
+
         # Short-circuits if any tensor in self._flat_weights is not acceptable to cuDNN
         # or the tensors in _flat_weights are of different dtypes
-
         first_fw = self._flat_weights[0]
         dtype = first_fw.dtype
         for fw in self._flat_weights:
@@ -116,8 +119,7 @@ class LSTM(Module):
         # Resets _flat_weights
         # Note: be v. careful before removing this, as 3rd party device types
         # likely rely on this behavior to properly .to() modules like LSTM.
-        self._flat_weights = [(lambda wn: getattr(self, wn) if hasattr(self, wn) else None)(wn)
-                              for wn in self._flat_weights_names]
+        self._flat_weights = list(map(self.get_attr, self._flat_weights_names))
         # Flattens params (on CUDA)
         self.flatten_parameters()
 
@@ -191,7 +193,7 @@ class LSTM(Module):
                 else:
                     self._all_weights += [weights[:2]]
                     self._flat_weights_names.extend(weights[:2])
-        self._flat_weights = [(lambda wn: getattr(self, wn) if hasattr(self, wn) else None)(wn) for wn in self._flat_weights_names]
+        self._flat_weights = list(map(self.get_attr, self._flat_weights_names))
 
     @property
     def all_weights(self):
