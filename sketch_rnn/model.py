@@ -25,8 +25,9 @@ class Encoder(nn.Module):
         nn.init.normal_(self.output.weight, 0., 0.001)
         nn.init.zeros_(self.output.bias)
 
-    def forward(self, x, lengths):
-        x = pack_sequence(x, lengths)
+    def forward(self, x, lengths=None):
+        if lengths is not None:
+            x = pack_sequence(x, lengths)
         _, (x, _) = self.rnn(x) # [2,batch,hid]
         x = x.permute(1,0,2).flatten(1).contiguous() # [batch,2*hid]
         z_mean, z_logvar = self.output(x).chunk(2, 1)
@@ -44,33 +45,34 @@ class SketchRNN(nn.Module):
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         self.state_init = nn.Sequential(hps.z_size, self.cell.state_size)
         self.mix_layer = MixLayer(hps.dec_rnn_size, k=hps.num_mixture)
-        self.kl_loss = KLLoss(
+        self.loss_kl = KLLoss(
             hps.kl_weight,
             eta_min=hps.kl_weight_start,
             R=hps.kl_decay_rate,
             kl_min=hps.kl_tolerance
         )
-        self.drawing_loss = DrawingLoss()
-        self.max_len = hps.max_seq_len
+        self.loss_draw = DrawingLoss()
         self.hps = hps
 
-    def forward(self, data, lengths):
+    def forward(self, data, lengths=None):
+        max_len = self.hps.max_seq_len
+
         # The target/expected vectors of strokes
-        output_x = data[:,1:self.max_len+1,:]
+        enc_inputs = data[:,1:max_len+1,:]
         # vectors of strokes to be fed to decoder (include dummy value)
-        input_x = data[:,:self.max_len,:]
+        dec_inputs = data[:,:max_len,:]
 
         # encoder forward
-        z, z_mean, z_logvar = self.encoder(output_x, lengths)
+        z, z_mean, z_logvar = self.encoder(enc_inputs, lengths)
 
         # initialize decoder state
         state = self.state_init(z).chunk(2, -1)
 
         # decoder forward
-        input_x = input_x.unbind(1)
+        dec_inputs = dec_inputs.unbind(1)
         output = []
-        for t in range(self.max_len):
-            inputs = torch.cat((input_x[t], z), -1)
+        for t in range(max_len):
+            inputs = torch.cat((dec_inputs[t], z), -1)
             out, state = self.cell(inputs, state)
             output.append(out)
         output = torch.stack(output, 1) # [batch,steps,dim]
