@@ -41,7 +41,7 @@ class SketchRNN(nn.Module):
         # Decoder LSTM
         assert hps.dec_model in ['lstm', 'layer_norm', 'hyper']
         cell_init = _cell_types[hps.dec_model]
-        self.cell = cell_init(5, hps.dec_rnn_size, r_dropout=hps.r_dropout)
+        self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         self.init = nn.Linear(hps.z_size, self.cell.state_size)
         self.mix_layer = MixLayer(hps.dec_rnn_size, k=hps.num_mixture)
