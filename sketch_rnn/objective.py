@@ -3,17 +3,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 # ---- KL Divergence loss ----
 
 def kl_divergence(mean, logvar):
     kl = -0.5 * (1 + logvar - mean ** 2 - torch.exp(logvar))
-    kl = kl.mean(0).sum()
-    return kl
+    return kl.mean()
 
 class KLLoss(nn.Module):
-    """
-    Good default value is eta_decay=1e-5
-    """
     def __init__(self, kl_weight=1., eta_min=0.01, R=0.99995, kl_min=0.):
         super().__init__()
         self.kl_weight = kl_weight
@@ -52,7 +49,7 @@ class DrawingLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, x, v, params):
+    def forward(self, x, v, params, mask=None):
         mix_logp, means, scales, corrs, v_logp = params
         # mixture losses
         mvn_logp = mvn_log_prob(x, means, scales, corrs) # [batch,step,mix]
@@ -63,5 +60,9 @@ class DrawingLoss(nn.Module):
         losses_v = losses_v.reshape(v.shape) # [batch,step]
         # total
         losses = losses_x + losses_v
+        if mask is None:
+            loss = losses.mean()
+        else:
+            loss = losses[mask].mean()
 
-        return losses
+        return loss
