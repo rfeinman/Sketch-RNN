@@ -1,4 +1,4 @@
-import numpy as np
+import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -36,14 +36,13 @@ class KLLoss(nn.Module):
 # ---- GMM Loss ----
 
 def mvn_log_prob(x, means, scales, corrs):
-    x_diff = x.unsqueeze(-2) - means # (...,k,d)
-    Z1 = torch.sum(x_diff**2/scales**2, -1) # (...,k)
-    Z2 = 2*corrs*torch.prod(x_diff,-1)/torch.prod(scales,-1) # (...,k)
-    mvn_logprobs1 = -(Z1-Z2)/(2*(1-corrs**2)) # (...,k)
-    mvn_logprobs2 = -torch.log(2*np.pi*torch.prod(scales,-1)*torch.sqrt(1-corrs**2)) # (...,k)
-    mvn_logprobs = mvn_logprobs1 + mvn_logprobs2 # (...,k)
-
-    return mvn_logprobs
+    diff = (x.unsqueeze(-2) - means) / scales # [...,k,d]
+    z1 = diff.square().sum(-1) # [...,k]
+    z2 = 2 * corrs * diff.prod(-1) # [...,k]
+    logp1 = - 0.5 * (z1-z2) / (1-corrs**2) # [...,k]
+    logp2 = - 0.5 * (1-corrs**2).log() - scales.log().sum(-1) - math.log(2*math.pi)  # [...,k]
+    logp = logp1 + logp2 # [...,k]
+    return logp
 
 class DrawingLoss(nn.Module):
     def __init__(self):
