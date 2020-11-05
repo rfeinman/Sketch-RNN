@@ -6,22 +6,15 @@ from torch import Tensor
 from torch.nn import init, Module, Parameter
 from torch.nn.utils.rnn import PackedSequence
 
-_rnn_impls = {
-    'RNN_TANH': torch._VF.rnn_tanh,
-    'RNN_RELU': torch._VF.rnn_relu,
-}
-
 
 def apply_permutation(tensor, permutation, dim=1):
     return tensor.index_select(dim, permutation)
 
 
-class RNNBase(Module):
-    def __init__(self, mode, input_size, hidden_size,
-                 num_layers=1, bias=True, batch_first=False,
-                 dropout=0., bidirectional=False):
-        super(RNNBase, self).__init__()
-        self.mode = 'LSTM'
+class LSTM(Module):
+    def __init__(self, input_size, hidden_size, num_layers=1, bias=True,
+                 batch_first=False, dropout=0., bidirectional=False):
+        super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -71,9 +64,9 @@ class RNNBase(Module):
             # keep self._flat_weights up to date if you do self.weight = ...
             idx = self._flat_weights_names.index(attr)
             self._flat_weights[idx] = value
-        super(RNNBase, self).__setattr__(attr, value)
+        super().__setattr__(attr, value)
 
-    def flatten_parameters(self) -> None:
+    def flatten_parameters(self):
         """Resets parameter data pointer so that they can use faster code paths.
         Right now, this works only if the module is on the GPU and cuDNN is enabled.
         Otherwise, it's a no-op.
@@ -113,12 +106,12 @@ class RNNBase(Module):
                 if torch._use_cudnn_rnn_flatten_weight():
                     torch._cudnn_rnn_flatten_weight(
                         self._flat_weights, (4 if self.bias else 2),
-                        self.input_size, rnn.get_cudnn_mode(self.mode),
+                        self.input_size, rnn.get_cudnn_mode('LSTM'),
                         self.hidden_size, self.num_layers,
                         self.batch_first, bool(self.bidirectional))
 
     def _apply(self, fn):
-        ret = super(RNNBase, self)._apply(fn)
+        ret = super()._apply(fn)
 
         # Resets _flat_weights
         # Note: be v. careful before removing this, as 3rd party device types
@@ -162,7 +155,7 @@ class RNNBase(Module):
         if hx.size() != expected_hidden_size:
             raise RuntimeError(msg.format(expected_hidden_size, list(hx.size())))
 
-    def extra_repr(self) -> str:
+    def extra_repr(self):
         s = '{input_size}, {hidden_size}'
         if self.num_layers != 1:
             s += ', num_layers={num_layers}'
@@ -177,7 +170,7 @@ class RNNBase(Module):
         return s.format(**self.__dict__)
 
     def __setstate__(self, d):
-        super(RNNBase, self).__setstate__(d)
+        super().__setstate__(d)
         if 'all_weights' in d:
             self._all_weights = d['all_weights']
 
@@ -205,16 +198,12 @@ class RNNBase(Module):
         return [[getattr(self, weight) for weight in weights] for weights in self._all_weights]
 
     def _replicate_for_data_parallel(self):
-        replica = super(RNNBase, self)._replicate_for_data_parallel()
+        replica = super()._replicate_for_data_parallel()
         # Need to copy these caches, otherwise the replica will share the same
         # flat weights list.
         replica._flat_weights = replica._flat_weights[:]
         replica._flat_weights_names = replica._flat_weights_names[:]
         return replica
-
-class LSTM(RNNBase):
-    def __init__(self, *args, **kwargs):
-        super(LSTM, self).__init__('LSTM', *args, **kwargs)
 
     def check_forward_args(self, input, hidden, batch_sizes):
         self.check_input(input, batch_sizes)
@@ -229,9 +218,8 @@ class LSTM(RNNBase):
         if permutation is None: return hx
         return apply_permutation(hx[0], permutation), apply_permutation(hx[1], permutation)
 
-    def forward(self, input, hx=None):  # noqa: F811
+    def forward(self, input, hx=None):
         orig_input = input
-        # xxx: isinstance check needs to be in conditional for TorchScript to compile
         if isinstance(orig_input, PackedSequence):
             input, batch_sizes, sorted_indices, unsorted_indices = input
             max_batch_size = batch_sizes[0]
