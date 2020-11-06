@@ -65,26 +65,26 @@ def load_stroke_data(data_dir, hps):
 class SketchRNNDataset:
     def __init__(self,
                  strokes,
-                 max_seq_length=250,
+                 max_len=250,
                  scale_factor=None,
                  random_scale_factor=0.0,
                  augment_stroke_prob=0.0,
                  limit=1000):
-        self.max_seq_length = max_seq_length  # N_max in sketch-rnn paper
+        self.max_len = max_len  # N_max in sketch-rnn paper
         self.random_scale_factor = random_scale_factor  # data augmentation method
-        self.limit = limit # clamp x-y offsets to range (-limit, limit)
         self.augment_stroke_prob = augment_stroke_prob  # data augmentation method
+        self.limit = limit # clamp x-y offsets to range (-limit, limit)
         self.preprocess(strokes) # list of drawings in stroke-3 format, sorted by size
         self.normalize(scale_factor)
 
     def preprocess(self, strokes):
-        """Remove entries from strokes having > max_seq_length points."""
+        """Remove entries from strokes having > max_len points."""
         raw_data = []
         seq_len = []
         count_data = 0
         for i in range(len(strokes)):
             data = strokes[i]
-            if len(data) <= (self.max_seq_length):
+            if len(data) <= (self.max_len):
                 count_data += 1
                 # removes large gaps from the data
                 data = np.minimum(data, self.limit)
@@ -103,7 +103,7 @@ class SketchRNNDataset:
         """Calculate the normalizing factor explained in appendix of sketch-rnn."""
         data = []
         for i in range(len(self.strokes)):
-            if len(self.strokes[i]) > self.max_seq_length:
+            if len(self.strokes[i]) > self.max_len:
                 continue
             for j in range(len(self.strokes[i])):
                 data.append(self.strokes[i][j,0])
@@ -142,7 +142,7 @@ class SketchRNNDataset:
 
     def pad_batch(self, batch):
         """Pad the batch to be stroke-5 bigger format as described in paper."""
-        max_len = self.max_seq_length
+        max_len = self.max_len
         start_stroke_token = [0, 0, 1, 0, 0]
         batch_size = len(batch)
         result = np.zeros((batch_size, max_len + 1, 5), dtype=float)
