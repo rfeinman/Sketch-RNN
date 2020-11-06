@@ -99,31 +99,6 @@ def lines_to_strokes(lines):
     return strokes[1:, :]
 
 
-def augment_strokes(strokes, prob=0.0):
-    """Perform data augmentation by randomly dropping out strokes."""
-    # drop each point within a line segments with a probability of prob
-    # note that the logic in the loop prevents points at the ends to be dropped.
-    result = []
-    prev_stroke = [0, 0, 1]
-    count = 0
-    stroke = [0, 0, 1]  # Added to be safe.
-    for i in range(len(strokes)):
-        candidate = [strokes[i][0], strokes[i][1], strokes[i][2]]
-        if candidate[2] == 1 or prev_stroke[2] == 1:
-            count = 0
-        else:
-            count += 1
-        check = candidate[2] == 0 and prev_stroke[2] == 0 and count > 2
-        if check and (np.random.rand() < prob):
-            stroke[0] += candidate[0]
-            stroke[1] += candidate[1]
-        else:
-            stroke = candidate
-            prev_stroke = stroke
-            result.append(stroke)
-    return np.array(result)
-
-
 def scale_bound(stroke, average_dimension=10.0):
     """Scale an entire image to be less than a certain size."""
     # stroke is a numpy array of [dx, dy, pstate], average_dimension is a float.

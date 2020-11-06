@@ -6,6 +6,9 @@ import torch
 
 from . import utils
 
+# start-of-sequence token
+SOS = torch.tensor([0, 0, 1, 0, 0], dtype=torch.float)
+
 
 def load_stroke_data(data_dir, hps):
     """Loads the .npz file, and splits the set into train/valid/test."""
@@ -78,7 +81,9 @@ class SketchRNNDataset:
         self.normalize(scale_factor)
 
     def preprocess(self, strokes):
-        """Remove entries from strokes having > max_len points."""
+        """Remove entries from strokes having > max_len points.
+        Clamp x-y values to (-limit, limit)
+        """
         raw_data = []
         seq_len = []
         count_data = 0
@@ -86,30 +91,21 @@ class SketchRNNDataset:
             data = strokes[i]
             if len(data) <= (self.max_len):
                 count_data += 1
-                # removes large gaps from the data
-                data = np.minimum(data, self.limit)
-                data = np.maximum(data, -self.limit)
-                data = np.array(data, dtype=np.float32)
+                data = torch.from_numpy(data).float()
+                data = data.clamp(-self.limit, self.limit)
                 raw_data.append(data)
                 seq_len.append(len(data))
-        seq_len = np.array(seq_len)  # nstrokes for each sketch
         idx = np.argsort(seq_len)
         self.strokes = []
         for i in range(len(seq_len)):
             self.strokes.append(raw_data[idx[i]])
-        print("total images <= max_seq_len is %d" % count_data)
+        print("total drawings <= max_seq_len is %d" % count_data)
 
     def calculate_normalizing_scale_factor(self):
         """Calculate the normalizing factor explained in appendix of sketch-rnn."""
-        data = []
-        for i in range(len(self.strokes)):
-            if len(self.strokes[i]) > self.max_len:
-                continue
-            for j in range(len(self.strokes[i])):
-                data.append(self.strokes[i][j,0])
-                data.append(self.strokes[i][j,1])
-        data = np.array(data)
-        return np.std(data)
+        strokes = [elt for elt in self.strokes if len(elt) <= self.max_len]
+        data = torch.cat(strokes)
+        return data[:,:2].std()
 
     def normalize(self, scale_factor=None):
         """Normalize entire dataset (delta_x, delta_y) by the scaling factor."""
@@ -117,25 +113,17 @@ class SketchRNNDataset:
             scale_factor = self.calculate_normalizing_scale_factor()
         self.scale_factor = scale_factor
         for i in range(len(self.strokes)):
-            self.strokes[i][:, 0:2] /= self.scale_factor
-
-    def random_scale(self, data):
-        """Augment data by stretching x and y axis randomly [1-e, 1+e]."""
-        x_scale = (np.random.random() - 0.5) * 2 * self.random_scale_factor + 1.0
-        y_scale = (np.random.random() - 0.5) * 2 * self.random_scale_factor + 1.0
-        data = np.copy(data)
-        data[:,0] *= x_scale
-        data[:,1] *= y_scale
-        return data
+            self.strokes[i][:,:2] /= self.scale_factor
 
     def __len__(self):
         return len(self.strokes)
 
     def __getitem__(self, idx):
         data = self.strokes[idx]
-        data = self.random_scale(data)
+        if self.random_scale_factor > 0:
+            data = random_scale(data, self.random_scale_factor)
         if self.augment_stroke_prob > 0:
-            data = utils.augment_strokes(np.copy(data), self.augment_stroke_prob)
+            data = random_augment(data, self.augment_stroke_prob)
         return data
 
     # ---- methods for batch collate ----
@@ -143,28 +131,60 @@ class SketchRNNDataset:
     def pad_batch(self, batch):
         """Pad the batch to be stroke-5 bigger format as described in paper."""
         max_len = self.max_len
-        start_stroke_token = [0, 0, 1, 0, 0]
         batch_size = len(batch)
-        result = np.zeros((batch_size, max_len + 1, 5), dtype=float)
+        result = torch.zeros(batch_size, max_len+1, 5)
         for i in range(batch_size):
             l = len(batch[i])
             assert l <= max_len
-            result[i, 0:l, 0:2] = batch[i][:, 0:2]
-            result[i, 0:l, 3] = batch[i][:, 2]
-            result[i, 0:l, 2] = 1 - result[i, 0:l, 3]
-            result[i, l:, 4] = 1
-            # put in the first token, as described in sketch-rnn methodology
-            result[i, 1:, :] = result[i, :-1, :]
-            result[i, 0, :] = 0
-            result[i, 0, 2] = start_stroke_token[2]  # setting S_0 from paper.
-            result[i, 0, 3] = start_stroke_token[3]
-            result[i, 0, 4] = start_stroke_token[4]
+            result[i,:l,:2] = batch[i][:,:2]
+            result[i,:l,3] = batch[i][:,2]
+            result[i,:l,2] = 1 - result[i,:l,3]
+            result[i,l:,4] = 1
+            # prepend S_0, as described in sketch-rnn
+            result[i] = torch.cat((SOS[None], result[i,:-1]))
 
         return result
 
     def collate_fn(self, batch):
         lengths = [len(seq) for seq in batch]
         batch = self.pad_batch(batch)
-        batch = torch.from_numpy(batch).float()
         lengths = torch.tensor(lengths, dtype=torch.long) # Tensor[nstk]
         return batch, lengths
+
+
+# ---- random transforms for data augmentation ----
+
+def random_scale(data, factor):
+    """Augment data by stretching x and y axis randomly [1-e, 1+e]."""
+    data = data.clone()
+    x_scale = (torch.rand(()) - 0.5) * 2 * factor + 1.0
+    y_scale = (torch.rand(()) - 0.5) * 2 * factor + 1.0
+    data[:,0] *= x_scale
+    data[:,1] *= y_scale
+    return data
+
+def random_augment(strokes, prob):
+    """Perform data augmentation by randomly dropping out strokes."""
+    # drop each point within a line segments with a probability of prob
+    # note that the logic in the loop prevents points at the ends to be dropped.
+    strokes = strokes.clone()
+    result = []
+    prev_stroke = [0, 0, 1]
+    count = 0
+    stroke = [0, 0, 1]  # Added to be safe.
+    for i in range(len(strokes)):
+        candidate = [strokes[i][0], strokes[i][1], strokes[i][2]]
+        if candidate[2] == 1 or prev_stroke[2] == 1:
+            count = 0
+        else:
+            count += 1
+        check = candidate[2] == 0 and prev_stroke[2] == 0 and count > 2
+        if check and (torch.rand(()) < prob):
+            stroke[0] += candidate[0]
+            stroke[1] += candidate[1]
+        else:
+            stroke = candidate
+            prev_stroke = stroke
+            result.append(stroke)
+    result = torch.tensor(result, dtype=torch.float)
+    return result
