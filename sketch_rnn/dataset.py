@@ -6,6 +6,8 @@ import torch
 
 from . import utils
 
+__all__ = ['load_stroke_data', 'SketchRNNDataset', 'collate_drawings']
+
 # start-of-sequence token
 SOS = torch.tensor([0, 0, 1, 0, 0], dtype=torch.float)
 
@@ -126,35 +128,6 @@ class SketchRNNDataset:
             data = random_augment(data, self.augment_stroke_prob)
         return data
 
-    # ---- methods for batch collate ----
-
-    def pad_batch(self, sequences):
-        """Pad the batch to be stroke-5 bigger format as described in paper."""
-        max_len = self.max_len
-        batch_size = len(sequences)
-        output = torch.zeros(batch_size, max_len+1, 5)
-        for i in range(batch_size):
-            seq, out = sequences[i], output[i]
-            l = len(seq)
-            assert l <= max_len
-            # fill sos value
-            out[0] = SOS
-            # fill remaining values
-            out = out[1:]
-            out[:l,:2] = seq[:,:2]
-            out[:l,3] = seq[:,2]
-            out[:l,2] = 1 - out[:l,3]
-            out[l:,4] = 1
-        return output
-
-    def collate_fn(self, sequences):
-        lengths = torch.tensor([len(seq) for seq in sequences],
-                               dtype=torch.long)
-        batch = self.pad_batch(sequences)
-        return batch, lengths
-
-
-# ---- random transforms for data augmentation ----
 
 def random_scale(data, factor):
     """Augment data by stretching x and y axis randomly [1-e, 1+e]."""
@@ -190,3 +163,31 @@ def random_augment(data, prob):
             result.append(stroke)
     result = torch.tensor(result, dtype=torch.float)
     return result
+
+
+
+# ---- methods for batch collation ----
+
+def pad_batch(sequences, max_len):
+    """Pad the batch to be stroke-5 bigger format as described in paper."""
+    batch_size = len(sequences)
+    output = torch.zeros(batch_size, max_len+1, 5)
+    for i in range(batch_size):
+        seq, out = sequences[i], output[i]
+        l = len(seq)
+        assert l <= max_len
+        # fill sos value
+        out[0] = SOS
+        # fill remaining values
+        out = out[1:]
+        out[:l,:2] = seq[:,:2]
+        out[:l,3] = seq[:,2]
+        out[:l,2] = 1 - out[:l,3]
+        out[l:,4] = 1
+    return output
+
+def collate_drawings(sequences, max_len):
+    lengths = torch.tensor([len(seq) for seq in sequences],
+                           dtype=torch.long)
+    batch = pad_batch(sequences, max_len)
+    return batch, lengths
