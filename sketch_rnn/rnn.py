@@ -85,10 +85,9 @@ class ChunkLayerNorm(nn.Module):
 
     def forward(self, x):
         # type: (Tensor) -> Tensor
-        batch_shape = x.shape[:-1]
-        x = x.reshape(*batch_shape, self.chunks, self.num_units)
+        x = x.reshape(x.size(0), self.chunks, self.num_units)
         x = F.layer_norm(x, (self.num_units,), None, None, self.eps)
-        x = x.reshape(*batch_shape, self.chunks*self.num_units)
+        x = x.reshape(x.size(0), self.chunks*self.num_units)
         if self.affine:
             x = x * self.weight + self.bias
         return x
