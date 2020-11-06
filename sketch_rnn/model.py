@@ -99,7 +99,7 @@ class SketchRNN(nn.Module):
         return params, z_mean, z_logvar
 
 
-def model_step(model, data, lengths=None):
+def model_step(model, data, lengths=None, mask_loss=False):
     # model forward
     params, z_mean, z_logvar = model(data, lengths)
 
@@ -110,7 +110,9 @@ def model_step(model, data, lengths=None):
     v = v_onehot.argmax(-1)
 
     # compute losses
-    mask = mask_from_lengths(lengths, model.max_len)
+    mask = None
+    if mask_loss and (lengths is not None):
+        mask = mask_from_lengths(lengths, model.max_len)
     loss_kl = model.loss_kl(z_mean, z_logvar)
     loss_draw = model.loss_draw(x, v, params, mask=mask)
     loss = loss_kl + loss_draw
@@ -118,8 +120,6 @@ def model_step(model, data, lengths=None):
     return loss
 
 def mask_from_lengths(lengths, max_len):
-    if lengths is None:
-        return None
     assert len(lengths.shape) == 1, 'lengths shape should be 1 dimensional.'
     mask = torch.arange(max_len, device=lengths.device, dtype=lengths.dtype)
     mask = mask.expand(lengths.size(0), -1) < lengths.unsqueeze(1)
