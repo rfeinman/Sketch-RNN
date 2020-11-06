@@ -1,4 +1,5 @@
-import math
+from typing import Tuple
+from torch import Tensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -16,9 +17,6 @@ def init_orthogonal_(weight, hsize):
 # ---- LSTMCell ----
 
 class LSTMCell(nn.Module):
-    """
-    LSTM cell with optional recurrent dropout.
-    """
     def __init__(self,
                  input_size,
                  hidden_size,
@@ -44,6 +42,7 @@ class LSTMCell(nn.Module):
         return 2 * self.hidden_size
 
     def forward(self, x, state):
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
         h, c = state
         Wi = torch.mm(x, self.weight_ih.t())
         Wh = torch.mm(h, self.weight_hh.t())
@@ -85,6 +84,7 @@ class ChunkLayerNorm(nn.Module):
             nn.init.zeros_(self.bias)
 
     def forward(self, x):
+        # type: (Tensor) -> Tensor
         batch_shape = x.shape[:-1]
         x = x.reshape(*batch_shape, self.chunks, self.num_units)
         x = F.layer_norm(x, (self.num_units,), None, None, self.eps)
@@ -121,6 +121,7 @@ class LayerNormLSTMCell(nn.Module):
         return 2 * self.hidden_size
 
     def forward(self, x, state):
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
         h, c = state
         Wi = torch.mm(x, self.weight_ih.t())
         Wh = torch.mm(h, self.weight_hh.t())
@@ -169,6 +170,7 @@ class HyperNorm(nn.Module):
             nn.init.constant_(self.beta.weight, 0.)
 
     def forward(self, x, hyper_out):
+        # type: (Tensor, Tensor) -> Tensor
         scale = self.alpha(self.zw(hyper_out))
         out = scale * x
         if self.bias:
@@ -248,6 +250,7 @@ class HyperLSTMCell(nn.Module):
         return 2 * (self.hidden_size + self.hyper_hidden_size)
 
     def forward(self, x, state):
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
         h_total, c_total = state
         h, h_hyper = h_total.split((self.hidden_size, self.hyper_hidden_size), 1)
         c, c_hyper = c_total.split((self.hidden_size, self.hyper_hidden_size), 1)
