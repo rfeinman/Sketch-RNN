@@ -292,3 +292,27 @@ _cell_types = {
     'layer_norm' : LayerNormLSTMCell,
     'hyper' : HyperLSTMCell
 }
+
+
+# ---- LSTM Layer ----
+
+
+class LSTMLayer(nn.Module):
+    def __init__(self, cell, batch_first=False, reverse=False):
+        super().__init__()
+        self.cell = cell
+        self.dim = 1 if batch_first else 0
+        self.reverse = reverse
+
+    def forward(self, inputs, state):
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
+        if self.reverse:
+            inputs = torch.flip(inputs, dims=[self.dim])
+        inputs = inputs.unbind(dim=self.dim)
+        outputs = []
+        for t in range(len(inputs)):
+            out, state = self.cell(inputs[t], state)
+            outputs += [out]
+        outputs = torch.stack(outputs, dim=self.dim)
+
+        return outputs, state
