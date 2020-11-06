@@ -6,13 +6,13 @@ import torch
 
 from . import utils
 
-__all__ = ['load_stroke_data', 'SketchRNNDataset', 'collate_drawings']
+__all__ = ['load_strokes', 'SketchRNNDataset', 'collate_drawings']
 
 # start-of-sequence token
 SOS = torch.tensor([0, 0, 1, 0, 0], dtype=torch.float)
 
 
-def load_stroke_data(data_dir, hps):
+def load_strokes(data_dir, hps):
     """Loads the .npz file, and splits the set into train/valid/test."""
 
     # normalizes the x and y columns using the training set.
