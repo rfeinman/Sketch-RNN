@@ -57,9 +57,8 @@ class SketchRNN(nn.Module):
             hps.kl_weight,
             eta_min=hps.kl_weight_start,
             R=hps.kl_decay_rate,
-            kl_min=hps.kl_tolerance
-        )
-        self.loss_draw = DrawingLoss()
+            kl_min=hps.kl_tolerance)
+        self.loss_draw = DrawingLoss(mask_padding=hps.mask_loss)
         self.max_len = hps.max_seq_len
         self.reset_parameters()
 
@@ -99,7 +98,7 @@ class SketchRNN(nn.Module):
         return params, z_mean, z_logvar
 
 
-def model_step(model, data, lengths=None, mask_loss=False):
+def model_step(model, data, lengths=None):
     # model forward
     params, z_mean, z_logvar = model(data, lengths)
 
@@ -110,17 +109,8 @@ def model_step(model, data, lengths=None, mask_loss=False):
     v = v_onehot.argmax(-1)
 
     # compute losses
-    mask = None
-    if mask_loss and (lengths is not None):
-        mask = mask_from_lengths(lengths, model.max_len)
     loss_kl = model.loss_kl(z_mean, z_logvar)
-    loss_draw = model.loss_draw(x, v, params, mask=mask)
+    loss_draw = model.loss_draw(x, v, params, lengths=lengths)
     loss = loss_kl + loss_draw
 
     return loss
-
-def mask_from_lengths(lengths, max_len):
-    assert len(lengths.shape) == 1, 'lengths shape should be 1 dimensional.'
-    mask = torch.arange(max_len, device=lengths.device, dtype=lengths.dtype)
-    mask = mask.expand(lengths.size(0), -1) < lengths.unsqueeze(1)
-    return mask

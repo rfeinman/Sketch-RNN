@@ -174,6 +174,7 @@ class HParams():
         self.kl_weight_start = 0.01 # eta_min
         self.kl_tolerance = 0.2 # kl_min
         self.kl_decay_rate = 0.99995 # R
+        self.mask_loss = False
         # training params
         self.lr = 0.001
         self.lr_decay = 0.9999

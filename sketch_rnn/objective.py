@@ -47,10 +47,11 @@ def mvn_log_prob(x, means, scales, corrs):
     return logp
 
 class DrawingLoss(nn.Module):
-    def __init__(self):
+    def __init__(self, mask_padding=False):
         super().__init__()
+        self.mask_padding = mask_padding
 
-    def forward(self, x, v, params, mask=None):
+    def forward(self, x, v, params, lengths=None):
         mix_logp, means, scales, corrs, v_logp = params
         # mixture losses
         mvn_logp = mvn_log_prob(x, means, scales, corrs) # [batch,step,mix]
@@ -61,9 +62,15 @@ class DrawingLoss(nn.Module):
         losses_v = losses_v.reshape(v.shape) # [batch,step]
         # total
         losses = losses_x + losses_v
-        if mask is None:
-            loss = losses.mean()
-        else:
+        if self.mask_padding and (lengths is not None):
+            mask = mask_from_lengths(lengths, max_len=x.size(1))
             loss = losses[mask].mean()
-
+        else:
+            loss = losses.mean()
         return loss
+
+def mask_from_lengths(lengths, max_len):
+    assert len(lengths.shape) == 1, 'lengths shape should be 1 dimensional.'
+    mask = torch.arange(max_len, device=lengths.device, dtype=lengths.dtype)
+    mask = mask.expand(lengths.size(0), -1) < lengths.unsqueeze(1)
+    return mask
