@@ -7,16 +7,16 @@ import torch
 from . import utils
 
 
-def load_stroke_data(data_dir, model_params):
+def load_stroke_data(data_dir, hps):
     """Loads the .npz file, and splits the set into train/valid/test."""
 
     # normalizes the x and y columns using the training set.
     # applies same scaling factor to valid and test set.
 
-    if isinstance(model_params.data_set, list):
-        datasets = model_params.data_set
+    if isinstance(hps.data_set, list):
+        datasets = hps.data_set
     else:
-        datasets = [model_params.data_set]
+        datasets = [hps.data_set]
 
     train_strokes = None
     valid_strokes = None
@@ -55,8 +55,8 @@ def load_stroke_data(data_dir, model_params):
     # calculate the max strokes we need.
     max_seq_len = utils.get_max_len(all_strokes)
     # overwrite the hps with this calculation.
-    model_params.max_seq_len = max_seq_len
-    print('model_params.max_seq_len %i.' % model_params.max_seq_len)
+    hps.max_seq_len = max_seq_len
+    print('hps.max_seq_len %i.' % hps.max_seq_len)
 
     return train_strokes, valid_strokes, test_strokes
 
