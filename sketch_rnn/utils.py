@@ -182,6 +182,8 @@ class HParams():
         self.z_size = 128
         self.num_mixture = 20
         self.r_dropout = 0.1
+        #self.input_dropout = 0.0  # Not recommended
+        #self.output_dropout = 0.0  # Not recommended
         # loss params
         self.kl_weight = 0.5
         self.kl_weight_start = 0.01 # eta_min
@@ -191,9 +193,8 @@ class HParams():
         self.lr = 0.001
         self.lr_decay = 0.9999
         self.min_lr = 0.00001
-        self.grad_clip = 1.
+        self.grad_clip = 1.0
         self.batch_size = 100
-        # data params
-        self.output_dropout_prob = 0.90  # Probability of output dropout keep.
-        self.random_scale_factor = 0.15  # Random scaling data augmentation proportion.
+        # data augmentation params
+        self.random_scale_factor = 0.15
         self.augment_stroke_prob = 0.10

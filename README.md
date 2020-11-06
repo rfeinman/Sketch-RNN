@@ -12,3 +12,4 @@ An [initial PyTorch implementation](https://github.com/alexis-jacq/Pytorch-Sketc
 
 ## Incomplete items
 1. Encoder LSTM. I have not yet implemented recurrent dropout and layer normalization for the bi-directional encoder LSTM.
+2. Input/output dropout for decoder LSTM. The official implementation recommends leaving these off, and I have not implemented the option for either.
