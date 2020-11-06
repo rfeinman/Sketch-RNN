@@ -163,17 +163,17 @@ def random_scale(data, factor):
     data[:,1] *= y_scale
     return data
 
-def random_augment(strokes, prob):
+def random_augment(data, prob):
     """Perform data augmentation by randomly dropping out strokes."""
     # drop each point within a line segments with a probability of prob
     # note that the logic in the loop prevents points at the ends to be dropped.
-    strokes = strokes.clone()
+    data = data.clone()
     result = []
     prev_stroke = [0, 0, 1]
     count = 0
     stroke = [0, 0, 1]  # Added to be safe.
-    for i in range(len(strokes)):
-        candidate = [strokes[i][0], strokes[i][1], strokes[i][2]]
+    for i in range(len(data)):
+        candidate = [data[i][0], data[i][1], data[i][2]]
         if candidate[2] == 1 or prev_stroke[2] == 1:
             count = 0
         else:
