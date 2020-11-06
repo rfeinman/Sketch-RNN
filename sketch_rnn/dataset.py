@@ -128,27 +128,29 @@ class SketchRNNDataset:
 
     # ---- methods for batch collate ----
 
-    def pad_batch(self, batch):
+    def pad_batch(self, sequences):
         """Pad the batch to be stroke-5 bigger format as described in paper."""
         max_len = self.max_len
-        batch_size = len(batch)
-        result = torch.zeros(batch_size, max_len+1, 5)
+        batch_size = len(sequences)
+        output = torch.zeros(batch_size, max_len+1, 5)
         for i in range(batch_size):
-            l = len(batch[i])
+            seq, out = sequences[i], output[i]
+            l = len(seq)
             assert l <= max_len
-            result[i,:l,:2] = batch[i][:,:2]
-            result[i,:l,3] = batch[i][:,2]
-            result[i,:l,2] = 1 - result[i,:l,3]
-            result[i,l:,4] = 1
-            # prepend S_0, as described in sketch-rnn
-            result[i] = torch.cat((SOS[None], result[i,:-1]))
+            # fill sos value
+            out[0] = SOS
+            # fill remaining values
+            out = out[1:]
+            out[:l,:2] = seq[:,:2]
+            out[:l,3] = seq[:,2]
+            out[:l,2] = 1 - out[:l,3]
+            out[l:,4] = 1
+        return output
 
-        return result
-
-    def collate_fn(self, batch):
-        lengths = [len(seq) for seq in batch]
-        batch = self.pad_batch(batch)
-        lengths = torch.tensor(lengths, dtype=torch.long) # Tensor[nstk]
+    def collate_fn(self, sequences):
+        lengths = torch.tensor([len(seq) for seq in sequences],
+                               dtype=torch.long)
+        batch = self.pad_batch(sequences)
         return batch, lengths
 
 
