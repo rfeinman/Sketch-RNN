@@ -174,7 +174,7 @@ class HParams():
         # dataset
         self.data_set = ['cat.npz']
         # model params
-        self.max_seq_len = 120
+        self.max_seq_len = 200
         self.enc_model = 'lstm'
         self.dec_model = 'layer_norm'
         self.enc_rnn_size = 256
@@ -182,7 +182,6 @@ class HParams():
         self.z_size = 128
         self.num_mixture = 20
         self.r_dropout = 0.1
-        self.batch_size = 100
         # loss params
         self.kl_weight = 0.5
         self.kl_weight_start = 0.01 # eta_min
@@ -193,6 +192,7 @@ class HParams():
         self.lr_decay = 0.9999
         self.min_lr = 0.00001
         self.grad_clip = 1.
+        self.batch_size = 100
         # data params
         self.output_dropout_prob = 0.90  # Probability of output dropout keep.
         self.random_scale_factor = 0.15  # Random scaling data augmentation proportion.
