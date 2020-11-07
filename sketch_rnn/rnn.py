@@ -26,7 +26,7 @@ class LSTMCell(nn.Module):
         self.weight_ih = nn.Parameter(torch.empty(4 * hidden_size, input_size))
         self.weight_hh = nn.Parameter(torch.empty(4 * hidden_size, hidden_size))
         self.bias = nn.Parameter(torch.empty(4 * hidden_size))
-        self.r_dropout = nn.Dropout(r_dropout)
+        self.r_dropout = nn.Dropout(r_dropout) if r_dropout > 0 else nn.Identity()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.forget_bias = forget_bias
@@ -101,7 +101,7 @@ class LayerNormLSTMCell(nn.Module):
         super().__init__()
         self.weight_ih = nn.Parameter(torch.empty(4 * hidden_size, input_size))
         self.weight_hh = nn.Parameter(torch.empty(4 * hidden_size, hidden_size))
-        self.r_dropout = nn.Dropout(r_dropout)
+        self.r_dropout = nn.Dropout(r_dropout) if r_dropout > 0 else nn.Identity()
         self.layernorm_h = ChunkLayerNorm(hidden_size, 4)
         self.layernorm_c = nn.LayerNorm(hidden_size)
         self.input_size = input_size
@@ -202,7 +202,7 @@ class HyperLSTMCell(nn.Module):
         # outer LSTM params
         self.weight_ih = nn.Parameter(torch.empty(4 * hidden_size, input_size))
         self.weight_hh = nn.Parameter(torch.empty(4 * hidden_size, hidden_size))
-        self.r_dropout = nn.Dropout(r_dropout)
+        self.r_dropout = nn.Dropout(r_dropout) if r_dropout > 0 else nn.Identity()
         if layer_norm:
             self.layernorm_h = ChunkLayerNorm(hidden_size, 4)
             self.layernorm_c = nn.LayerNorm(hidden_size)
