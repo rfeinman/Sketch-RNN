@@ -49,9 +49,9 @@ class SketchRNN(nn.Module):
         # encoder modules
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         # decoder modules
-        cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
-        self.decoder = torch.jit.script(LSTMLayer(cell, batch_first=True))
-        self.init = nn.Linear(hps.z_size, cell.state_size)
+        self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
+        self.decoder = torch.jit.script(LSTMLayer(self.cell, batch_first=True))
+        self.init = nn.Linear(hps.z_size, self.cell.state_size)
         self.param_layer = ParameterLayer(hps.dec_rnn_size, k=hps.num_mixture)
         # loss modules
         self.loss_kl = KLLoss(
@@ -65,7 +65,7 @@ class SketchRNN(nn.Module):
 
     def reset_parameters(self):
         self.encoder.reset_parameters()
-        self.decoder.reset_parameters()
+        self.cell.reset_parameters()
         nn.init.normal_(self.init.weight, 0., 0.001)
         nn.init.zeros_(self.init.bias)
         self.param_layer.reset_parameters()
