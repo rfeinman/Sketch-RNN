@@ -9,10 +9,6 @@ from .objective import KLLoss, DrawingLoss
 __all__ = ['SketchRNN', 'model_step']
 
 
-def pack_sequence(seq, lengths):
-    pack = rnn_utils.pack_padded_sequence(
-        seq, lengths, batch_first=True, enforce_sorted=False)
-    return pack
 
 class Encoder(nn.Module):
     def __init__(self, hidden_size, z_size):
@@ -28,7 +24,8 @@ class Encoder(nn.Module):
 
     def forward(self, x, lengths=None):
         if lengths is not None:
-            x = pack_sequence(x, lengths)
+            x = rnn_utils.pack_padded_sequence(
+                x, lengths, batch_first=True, enforce_sorted=False)
         _, (x, _) = self.rnn(x) # [2,batch,hid]
         x = x.permute(1,0,2).flatten(1).contiguous() # [batch,2*hid]
         z_mean, z_logvar = self.output(x).chunk(2, 1)
