@@ -1,10 +1,10 @@
-from typing import Tuple
+from typing import Tuple, List
 from torch import Tensor
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['LSTMCell', 'LayerNormLSTMCell', 'HyperLSTMCell']
+__all__ = ['LSTMCell', 'LayerNormLSTMCell', 'HyperLSTMCell', 'LSTMLayer']
 
 
 
@@ -152,6 +152,8 @@ class HyperNorm(nn.Module):
         if bias:
             self.zb = nn.Linear(input_size, embed_size)
             self.beta = nn.Linear(embed_size, hidden_size, bias=False)
+        else:
+            self.zb = self.beta = None
         self.input_size = input_size
         self.embed_size = embed_size
         self.hidden_size = hidden_size
@@ -172,7 +174,7 @@ class HyperNorm(nn.Module):
         # type: (Tensor, Tensor) -> Tensor
         scale = self.alpha(self.zw(hyper_out))
         out = scale * x
-        if self.bias:
+        if self.beta is not None:
             bias = self.beta(self.zb(hyper_out))
             out = out + bias
         return out
@@ -204,7 +206,9 @@ class HyperLSTMCell(nn.Module):
         if layer_norm:
             self.layernorm_h = ChunkLayerNorm(hidden_size, 4)
             self.layernorm_c = nn.LayerNorm(hidden_size)
+            self.bias = None
         else:
+            self.layernorm_h = self.layernorm_c = None
             self.bias = nn.Parameter(torch.empty(4 * hidden_size))
         # hypernorm layers
         def norm_init(use_bias):
@@ -248,36 +252,61 @@ class HyperLSTMCell(nn.Module):
     def state_size(self):
         return 2 * (self.hidden_size + self.hyper_hidden_size)
 
+    # def _apply_hypernorm(self, h_hyper, Wx, Wh):
+    #     gates_x = [norm(gate,h_hyper) for norm,gate in zip(self.norms_x, Wx.chunk(4,1))]
+    #     gates_h = [norm(gate,h_hyper) for norm,gate in zip(self.norms_h, Wh.chunk(4,1))]
+    #     gates = [gx+gh for gx,gh in zip(gates_x, gates_h)]
+    #     gates = torch.cat(gates, 1)
+    #     return gates
+
+    def _apply_hypernorm(self, h_hyper, Wx, Wh):
+        # type: (Tensor, Tensor, Tensor) -> Tensor
+        gates_x = Wx.chunk(4,1)
+        gates_h = Wh.chunk(4,1)
+        gates = torch.jit.annotate(List[Tensor], [])
+        i = 0
+        for norm in self.norms_x:
+            g_in = gates_x[i]
+            g_out = norm(g_in, h_hyper)
+            gates += [g_out]
+            i += 1
+        i = 0
+        for norm in self.norms_h:
+            g_in = gates_h[i]
+            g_out = norm(g_in, h_hyper)
+            gates[i] += g_out
+            i += 1
+        gates = torch.cat(gates, 1)
+        return gates
+
     def forward(self, x, state):
         # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
         h_total, c_total = state
         h, h_hyper = h_total.split((self.hidden_size, self.hyper_hidden_size), 1)
         c, c_hyper = c_total.split((self.hidden_size, self.hyper_hidden_size), 1)
 
-        # hyper forward
+        # hyper lstm cell
         _, (h_hyper, c_hyper) = self.hyper_cell(x, (h_hyper, c_hyper))
 
-        # main forward
+        # compute linear gate activations
         Wx = torch.mm(x, self.weight_ih.t())
         Wh = torch.mm(h, self.weight_hh.t())
-
-        gates_x = [norm(gate,h_hyper) for norm,gate in zip(self.norms_x, Wx.chunk(4,1))]
-        gates_h = [norm(gate,h_hyper) for norm,gate in zip(self.norms_h, Wh.chunk(4,1))]
-        gates = [gx+gh for gx,gh in zip(gates_x, gates_h)]
-        if self.layer_norm:
-            gates = torch.cat(gates, 1)
+        gates = self._apply_hypernorm(h_hyper, Wx, Wh)
+        if self.layernorm_h is not None:
             gates = self.layernorm_h(gates)
-            gates = gates.chunk(4,1)
         else:
-            gates = [g+b for g,b in zip(gates, self.bias.chunk(4,0))]
-        i_gate = torch.sigmoid(gates[0])
-        f_gate = torch.sigmoid(gates[1] + self.forget_bias)
-        o_gate = torch.sigmoid(gates[2])
-        c_cand = torch.tanh(gates[3])
+            gates = gates + self.bias
+
+        # split and apply activations
+        i_gate, f_gate, o_gate, c_cand = gates.chunk(4, 1)
+        i_gate = torch.sigmoid(i_gate)
+        f_gate = torch.sigmoid(f_gate + self.forget_bias)
+        o_gate = torch.sigmoid(o_gate)
+        c_cand = torch.tanh(c_cand)
 
         # update hidden and cell states
         c = f_gate * c + i_gate * self.r_dropout(c_cand)
-        c_input = self.layernorm_c(c) if self.layer_norm else c
+        c_input = self.layernorm_c(c) if (self.layernorm_c is not None) else c
         h = o_gate * torch.tanh(c_input)
 
         # collect total state
@@ -287,6 +316,8 @@ class HyperLSTMCell(nn.Module):
 
         return h, state
 
+
+
 _cell_types = {
     'lstm' : LSTMCell,
     'layer_norm' : LayerNormLSTMCell,
@@ -294,8 +325,9 @@ _cell_types = {
 }
 
 
-# ---- LSTM Layer ----
 
+
+# ---- LSTM Layer ----
 
 class LSTMLayer(nn.Module):
     def __init__(self, cell, batch_first=False, reverse=False):
