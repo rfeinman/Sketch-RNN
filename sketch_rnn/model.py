@@ -45,11 +45,11 @@ class SketchRNN(nn.Module):
         if hps.enc_model in ['layer_norm', 'hyper']:
             raise NotImplementedError('LayerNormLSTM and HyperLSTM not yet '
                                       'implemented for bi-directional encoder.')
-        cell_init = _cell_types[hps.dec_model]
         # encoder modules
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         # decoder modules
-        self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
+        cell_fn = _cell_types[hps.dec_model]
+        self.cell = cell_fn(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
         self.decoder = torch.jit.script(LSTMLayer(self.cell, batch_first=True))
         self.init = nn.Linear(hps.z_size, self.cell.state_size)
         self.param_layer = ParameterLayer(hps.dec_rnn_size, k=hps.num_mixture)
