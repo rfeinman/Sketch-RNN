@@ -64,8 +64,8 @@ class SketchRNN(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.cell.reset_parameters()
         self.encoder.reset_parameters()
+        self.decoder.reset_parameters()
         nn.init.normal_(self.init.weight, 0., 0.001)
         nn.init.zeros_(self.init.bias)
         self.param_layer.reset_parameters()

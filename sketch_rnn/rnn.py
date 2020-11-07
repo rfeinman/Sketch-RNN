@@ -335,6 +335,10 @@ class LSTMLayer(nn.Module):
         self.cell = cell
         self.dim = 1 if batch_first else 0
         self.reverse = reverse
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        self.cell.reset_parameters()
 
     def forward(self, inputs, state):
         # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
