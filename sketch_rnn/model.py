@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.utils.rnn as rnn_utils
 
-from .rnn import _cell_types
+from .rnn import _cell_types, LSTMLayer
 from .param_layer import ParameterLayer
 from .objective import KLLoss, DrawingLoss
 
@@ -49,8 +49,9 @@ class SketchRNN(nn.Module):
         # encoder modules
         self.encoder = Encoder(hps.enc_rnn_size, hps.z_size)
         # decoder modules
-        self.cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
-        self.init = nn.Linear(hps.z_size, self.cell.state_size)
+        cell = cell_init(5+hps.z_size, hps.dec_rnn_size, r_dropout=hps.r_dropout)
+        self.decoder = torch.jit.script(LSTMLayer(cell, batch_first=True))
+        self.init = nn.Linear(hps.z_size, cell.state_size)
         self.param_layer = ParameterLayer(hps.dec_rnn_size, k=hps.num_mixture)
         # loss modules
         self.loss_kl = KLLoss(
@@ -81,16 +82,12 @@ class SketchRNN(nn.Module):
         z, z_mean, z_logvar = self.encoder(enc_inputs, lengths)
 
         # initialize decoder state
-        state = torch.tanh(self.init(z)).chunk(2, -1)
+        state = torch.tanh(self.init(z)).chunk(2, dim=-1)
 
         # decoder forward
-        dec_inputs = dec_inputs.unbind(1)
-        output = []
-        for t in range(max_len):
-            inputs = torch.cat((dec_inputs[t], z), -1)
-            out, state = self.cell(inputs, state)
-            output.append(out)
-        output = torch.stack(output, 1) # [batch,steps,dim]
+        z_rep = z[:,None].expand(-1,max_len,-1)
+        dec_inputs = torch.cat((dec_inputs, z_rep), dim=-1)
+        output, _ = self.decoder(dec_inputs, state)
 
         # mixlayer outputs
         params = self.param_layer(output)
