@@ -69,7 +69,6 @@ class SketchRNN(nn.Module):
 
     def forward(self, data, lengths=None):
         max_len = self.max_len
-
         # The target/expected vectors of strokes
         enc_inputs = data[:,1:max_len+1,:]
         # vectors of strokes to be fed to decoder (include dummy value)
@@ -81,9 +80,11 @@ class SketchRNN(nn.Module):
         # initialize decoder state
         state = torch.tanh(self.init(z)).chunk(2, dim=-1)
 
-        # decoder forward
+        # append z to decoder inputs
         z_rep = z[:,None].expand(-1,max_len,-1)
         dec_inputs = torch.cat((dec_inputs, z_rep), dim=-1)
+
+        # decoder forward
         output, _ = self.decoder(dec_inputs, state)
 
         # mixlayer outputs
