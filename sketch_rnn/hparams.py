@@ -26,6 +26,7 @@ def hparam_parser():
     group.add_argument('--kl_weight_start', type=float, default=0.01) # eta_min
     group.add_argument('--kl_tolerance', type=float, default=0.2) # kl_min
     group.add_argument('--kl_decay_rate', type=float, default=0.99995) # R
+    group.add_argument('--reg_covar', type=float, default=1e-6) # R
 
     # training params
     group.add_argument('--batch_size', type=int, default=100)

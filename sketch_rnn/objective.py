@@ -47,12 +47,27 @@ def mvn_log_prob(x, means, scales, corrs):
     return logp
 
 class DrawingLoss(nn.Module):
-    def __init__(self):
+    """
+    Parameters
+    ----------
+    reg_covar : float
+        Non-negative regularization added to the diagonal of covariance.
+    """
+    def __init__(self, reg_covar=1e-6):
         super().__init__()
+        self.reg_covar = reg_covar
+
+    def _tikhonov(self, scales, corrs):
+        if self.reg_covar == 0:
+            return scales, corrs
+        scales_ = torch.sqrt(scales**2 + self.reg_covar)
+        corrs_ = corrs * torch.prod(scales, -1) / torch.prod(scales_, -1)
+        return scales_, corrs_
 
     def forward(self, x, v, params):
         # unpack predicted parameters
         mix_logp, means, scales, corrs, v_logp = params
+        scales, corrs = self._tikhonov(scales, corrs)
         # losses_x: loss wrt pen offset (L_s in equation 9)
         mvn_logp = mvn_log_prob(x, means, scales, corrs) # [batch,step,mix]
         gmm_logp = torch.logsumexp(mix_logp + mvn_logp, dim=-1) # [batch,step]

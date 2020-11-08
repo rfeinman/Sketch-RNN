@@ -56,7 +56,7 @@ class SketchRNN(nn.Module):
             eta_min=hps.kl_weight_start,
             R=hps.kl_decay_rate,
             kl_min=hps.kl_tolerance)
-        self.loss_draw = DrawingLoss()
+        self.loss_draw = DrawingLoss(reg_covar=hps.reg_covar)
         self.max_len = hps.max_seq_len
         self.reset_parameters()
 
