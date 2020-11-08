@@ -145,37 +145,37 @@ class LayerNormLSTMCell(nn.Module):
 # ---- HyperLSTMCell ----
 
 class HyperNorm(nn.Module):
-    def __init__(self, input_size, embed_size, hidden_size, bias=True):
+    def __init__(self, input_size, embed_size, output_size, bias=True):
         super().__init__()
-        self.zw = nn.Linear(input_size, embed_size)
-        self.alpha = nn.Linear(embed_size, hidden_size, bias=False)
+        self.scale_net = nn.Sequential(
+            nn.Linear(input_size, embed_size, bias=True),
+            nn.Linear(embed_size, output_size, bias=False)
+        )
         if bias:
-            self.zb = nn.Linear(input_size, embed_size)
-            self.beta = nn.Linear(embed_size, hidden_size, bias=False)
+            self.bias_net = nn.Sequential(
+                nn.Linear(input_size, embed_size, bias=False),
+                nn.Linear(embed_size, output_size, bias=False)
+            )
         else:
-            self.zb = self.beta = None
-        self.input_size = input_size
+            self.bias_net = None
         self.embed_size = embed_size
-        self.hidden_size = hidden_size
-        self.bias = bias
         self.reset_parameters()
 
     def reset_parameters(self):
         init_gamma = 0.1
-        nn.init.constant_(self.zw.weight, 0.)
-        nn.init.constant_(self.zw.bias, 1.)
-        nn.init.constant_(self.alpha.weight, init_gamma/self.embed_size)
-        if self.bias:
-            nn.init.normal_(self.zb.weight, 0., 0.01)
-            nn.init.constant_(self.zb.bias, 0.)
-            nn.init.constant_(self.beta.weight, 0.)
+        nn.init.constant_(self.scale_net[0].weight, 0.)
+        nn.init.constant_(self.scale_net[0].bias, 1.)
+        nn.init.constant_(self.scale_net[1].weight, init_gamma/self.embed_size)
+        if self.bias_net is not None:
+            nn.init.normal_(self.bias_net[0].weight, 0., 0.01)
+            nn.init.constant_(self.bias_net[1].weight, 0.)
 
     def forward(self, x, hyper_out):
         # type: (Tensor, Tensor) -> Tensor
-        scale = self.alpha(self.zw(hyper_out))
+        scale = self.scale_net(hyper_out)
         out = scale * x
-        if self.beta is not None:
-            bias = self.beta(self.zb(hyper_out))
+        if self.bias_net is not None:
+            bias = self.bias_net(hyper_out)
             out = out + bias
         return out
 
