@@ -56,7 +56,7 @@ class SketchRNN(nn.Module):
             eta_min=hps.kl_weight_start,
             R=hps.kl_decay_rate,
             kl_min=hps.kl_tolerance)
-        self.loss_draw = DrawingLoss(mask_padding=hps.mask_loss)
+        self.loss_draw = DrawingLoss()
         self.max_len = hps.max_seq_len
         self.reset_parameters()
 
@@ -105,7 +105,7 @@ def model_step(model, data, lengths=None):
 
     # compute losses
     loss_kl = model.loss_kl(z_mean, z_logvar)
-    loss_draw = model.loss_draw(x, v, params, lengths=lengths)
+    loss_draw = model.loss_draw(x, v, params)
     loss = loss_kl + loss_draw
 
     return loss

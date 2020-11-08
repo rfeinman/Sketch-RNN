@@ -21,7 +21,6 @@ def train_epoch(model, data_loader, optimizer, scheduler, device,
         for data, lengths in data_loader:
             data = data.to(device, non_blocking=True)
             lengths = lengths.to(device, non_blocking=True)
-            lengths = lengths + 2 # add 2 for SOS and EOS tokens
             # training step
             optimizer.zero_grad()
             loss = model_step(model, data, lengths)
@@ -45,7 +44,6 @@ def eval_epoch(model, data_loader, device):
     for data, lengths in data_loader:
         data = data.to(device, non_blocking=True)
         lengths = lengths.to(device, non_blocking=True)
-        lengths = lengths + 2 # add 2 for SOS and EOS tokens
         loss = model_step(model, data, lengths)
         loss_meter.update(loss.item(), data.size(0))
     return loss_meter.avg

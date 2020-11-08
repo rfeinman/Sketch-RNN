@@ -47,30 +47,23 @@ def mvn_log_prob(x, means, scales, corrs):
     return logp
 
 class DrawingLoss(nn.Module):
-    def __init__(self, mask_padding=False):
+    def __init__(self):
         super().__init__()
-        self.mask_padding = mask_padding
 
-    def forward(self, x, v, params, lengths=None):
+    def forward(self, x, v, params):
+        # unpack predicted parameters
         mix_logp, means, scales, corrs, v_logp = params
-        # mixture losses
+        # losses_x: loss wrt pen offset (L_s in equation 9)
         mvn_logp = mvn_log_prob(x, means, scales, corrs) # [batch,step,mix]
-        logp = torch.logsumexp(mix_logp + mvn_logp, dim=-1) # [batch,step]
-        losses_x = -logp
-        # pen action category loss
+        gmm_logp = torch.logsumexp(mix_logp + mvn_logp, dim=-1) # [batch,step]
+        losses_x = -gmm_logp
+        # losses_v: loss wrt pen state (L_p in equation 9)
         losses_v = F.nll_loss(v_logp.flatten(0,1), v.flatten(), reduction='none')
         losses_v = losses_v.reshape(v.shape) # [batch,step]
-        # total
-        losses = losses_x + losses_v
-        if self.mask_padding and (lengths is not None):
-            mask = mask_from_lengths(lengths, max_len=x.size(1))
-            loss = losses[mask].mean()
-        else:
-            loss = losses.mean()
-        return loss
+        # total average loss
+        # padding is masked always for x and only in eval mode for v
+        loss_x = losses_x[v!=2].mean()
+        loss_v = losses_v.mean() if self.training else losses_v[v!=2].mean()
+        loss = loss_x + loss_v
 
-def mask_from_lengths(lengths, max_len):
-    assert len(lengths.shape) == 1, 'lengths shape should be 1 dimensional.'
-    mask = torch.arange(max_len, device=lengths.device, dtype=lengths.dtype)
-    mask = mask.expand(lengths.size(0), -1) < lengths.unsqueeze(1)
-    return mask
+        return loss
