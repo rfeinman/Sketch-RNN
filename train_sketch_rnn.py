@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from sketch_rnn.hparams import hparam_parser
-from sketch_rnn.utils import AverageMeter
+from sketch_rnn.utils import AverageMeter, ModelCheckpoint
 from sketch_rnn.dataset import SketchRNNDataset, load_strokes, collate_drawings
 from sketch_rnn.model import SketchRNN, model_step
 
@@ -55,6 +55,7 @@ def train_sketch_rnn(args):
     torch.manual_seed(884)
     use_gpu = torch.cuda.is_available()
     device = torch.device('cuda') if use_gpu else torch.device('cpu')
+    saver = ModelCheckpoint(args.save_dir) if (args.save_dir is not None) else None
 
     # initialize train and val datasets
     train_strokes, valid_strokes, test_strokes = load_strokes(args.data_dir, args)
@@ -96,12 +97,14 @@ def train_sketch_rnn(args):
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.ExponentialLR(optimizer, args.lr_decay)
 
-    for i in range(args.num_epochs):
+    for epoch in range(args.num_epochs):
         train_loss = train_epoch(
             model, train_loader, optimizer, scheduler, device, args.grad_clip)
         val_loss = eval_epoch(model, val_loader, device)
         print('Epoch %0.3i, Train Loss: %0.4f, Valid Loss: %0.4f' %
-              (i+1, train_loss, val_loss))
+              (epoch+1, train_loss, val_loss))
+        if saver is not None:
+            saver(epoch, model, optimizer, train_loss, val_loss)
         time.sleep(0.5) # avoids progress bar issue
 
 
@@ -111,6 +114,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(parents=[hp_parser])
     parser.add_argument('--data_dir', type=str,
                         default='/misc/vlgscratch4/LakeGroup/Reuben/Sketch-RNN')
+    parser.add_argument('--save_dir', type=str, default=None)
     parser.add_argument('--num_epochs', type=int, default=200)
     parser.add_argument('--num_workers', type=int, default=4)
     args = parser.parse_args()
