@@ -154,38 +154,6 @@ def get_max_len(strokes):
     return max_len
 
 
-class HParams():
-    def __init__(self):
-        # dataset
-        self.data_set = ['cat.npz']
-        # model params
-        self.max_seq_len = 200
-        self.enc_model = 'lstm'
-        self.dec_model = 'layer_norm'
-        self.enc_rnn_size = 256
-        self.dec_rnn_size = 512
-        self.z_size = 128
-        self.num_mixture = 20
-        self.r_dropout = 0.1
-        #self.input_dropout = 0.0  # Not recommended
-        #self.output_dropout = 0.0  # Not recommended
-        # loss params
-        self.kl_weight = 0.5
-        self.kl_weight_start = 0.01 # eta_min
-        self.kl_tolerance = 0.2 # kl_min
-        self.kl_decay_rate = 0.99995 # R
-        self.mask_loss = False
-        # training params
-        self.lr = 0.001
-        self.lr_decay = 0.9999
-        self.min_lr = 0.00001
-        self.grad_clip = 1.0
-        self.batch_size = 100
-        # data augmentation params
-        self.random_scale_factor = 0.15
-        self.augment_stroke_prob = 0.10
-
-
 class AverageMeter:
     """Computes and stores the average and current value."""
     def __init__(self):
