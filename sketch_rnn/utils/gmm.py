@@ -1,9 +1,16 @@
 import torch
 import torch.distributions as D
 
-__all__ = ['compute_cov2d', 'sample_gmm']
+__all__ = ['tikhonov_reg2d', 'compute_cov2d', 'sample_gmm']
 
 
+def tikhonov_reg2d(scales, corrs, alpha):
+    """Adds a non-negative constant to the diagonal of the covariance
+    matrix for a 2D multivariate normal ("tikhonov regularization").
+    """
+    scales_ = torch.sqrt(scales**2 + alpha)
+    corrs_ = corrs * torch.prod(scales, -1) / torch.prod(scales_, -1)
+    return scales_, corrs_
 
 def compute_cov2d(scales, corrs):
     """
