@@ -4,7 +4,7 @@ import requests
 import numpy as np
 import torch
 
-from . import utils
+from .utils import get_max_len, to_tensor
 
 __all__ = ['load_strokes', 'SketchRNNDataset', 'collate_drawings']
 
@@ -57,10 +57,8 @@ def load_strokes(data_dir, hps):
         len(all_strokes), len(train_strokes), len(valid_strokes),
         len(test_strokes), int(avg_len)))
 
-    # calculate the max strokes we need.
-    max_seq_len = utils.get_max_len(all_strokes)
-    # overwrite the hps with this calculation.
-    hps.max_seq_len = max_seq_len
+    # calculate the max stroke len and overwrite hps
+    hps.max_seq_len = get_max_len(all_strokes)
     print('hps.max_seq_len %i.' % hps.max_seq_len)
 
     return train_strokes, valid_strokes, test_strokes
@@ -75,6 +73,7 @@ class SketchRNNDataset:
                  random_scale_factor=0.0,
                  augment_stroke_prob=0.0,
                  limit=1000):
+        strokes = [[to_tensor(stk) for stk in drawing] for drawing in strokes]
         self.max_len = max_len  # N_max in sketch-rnn paper
         self.random_scale_factor = random_scale_factor  # data augmentation method
         self.augment_stroke_prob = augment_stroke_prob  # data augmentation method
@@ -93,7 +92,6 @@ class SketchRNNDataset:
             data = strokes[i]
             if len(data) <= (self.max_len):
                 count_data += 1
-                data = torch.from_numpy(data).float()
                 data = data.clamp(-self.limit, self.limit)
                 raw_data.append(data)
                 seq_len.append(len(data))
