@@ -58,6 +58,7 @@ class SketchRNN(nn.Module):
             kl_min=hps.kl_tolerance)
         self.loss_draw = DrawingLoss(reg_covar=hps.reg_covar)
         self.max_len = hps.max_seq_len
+        self.z_size = hps.z_size
         self.reset_parameters()
 
     def reset_parameters(self):
