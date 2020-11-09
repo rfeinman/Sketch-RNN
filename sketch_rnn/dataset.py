@@ -73,7 +73,7 @@ class SketchRNNDataset:
                  random_scale_factor=0.0,
                  augment_stroke_prob=0.0,
                  limit=1000):
-        strokes = [[to_tensor(stk) for stk in drawing] for drawing in strokes]
+        strokes = [to_tensor(stk) for stk in strokes]
         self.max_len = max_len  # N_max in sketch-rnn paper
         self.random_scale_factor = random_scale_factor  # data augmentation method
         self.augment_stroke_prob = augment_stroke_prob  # data augmentation method
