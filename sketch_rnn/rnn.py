@@ -350,5 +350,7 @@ class LSTMLayer(nn.Module):
             out, state = self.cell(inputs[t], state)
             outputs += [out]
         outputs = torch.stack(outputs, dim=self.dim)
+        if self.reverse:
+            outputs = torch.flip(outputs, dims=[self.dim])
 
         return outputs, state
