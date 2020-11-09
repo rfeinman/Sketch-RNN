@@ -148,9 +148,9 @@ def sample_from_z(model, z, T=1):
     return torch.cat(x_samp), torch.cat(v_samp)
 
 @torch.no_grad()
-def sample_unconditional(model, T=1, device=torch.device('cpu')):
+def sample_unconditional(model, T=1, z_scale=1, device=torch.device('cpu')):
     model.eval().to(device)
-    z = torch.randn(1, model.z_size, dtype=torch.float, device=device)
+    z = z_scale * torch.randn(1, model.z_size, dtype=torch.float, device=device)
     return sample_from_z(model, z, T=T)
 
 @torch.no_grad()
