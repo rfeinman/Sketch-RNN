@@ -1,25 +1,7 @@
 import torch
 
-from ..model import SketchRNN
+__all__ = ['seq2seq_step']
 
-__all__ = ['Seq2SeqSketchRNN', 'seq2seq_step']
-
-
-class Seq2SeqSketchRNN(SketchRNN):
-    def forward(self, src, trg, src_lengths=None):
-        # encoder forward
-        z, z_mean, z_logvar = self.encoder(src, src_lengths)
-        # initialize decoder state
-        state = torch.tanh(self.init(z)).chunk(2, dim=-1)
-        # append z to decoder inputs
-        z_rep = z[:,None].expand(-1,self.max_len,-1)
-        dec_inputs = torch.cat((trg, z_rep), dim=-1)
-        # decoder forward
-        output, _ = self.decoder(dec_inputs, state)
-        # mixlayer outputs
-        params = self.param_layer(output)
-
-        return params, z_mean, z_logvar
 
 def seq2seq_step(model, src, trg, src_lengths=None):
     max_len = model.max_len
@@ -27,7 +9,7 @@ def seq2seq_step(model, src, trg, src_lengths=None):
     # model forward
     src = src[:,1:max_len+1] # remove sos
     trg_in = trg[:,:max_len]
-    params, z_mean, z_logvar = model(src, trg_in, src_lengths)
+    params, z_mean, z_logvar = model._forward(src, trg_in, src_lengths)
 
     # prepare targets
     trg = trg[:,1:max_len+1]
