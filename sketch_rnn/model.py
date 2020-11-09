@@ -1,12 +1,17 @@
+import numbers
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+import torch.distributions as D
 import torch.nn.utils.rnn as rnn_utils
 
 from .rnn import _cell_types, LSTMLayer
 from .param_layer import ParameterLayer
 from .objective import KLLoss, DrawingLoss
+from .utils import sample_gmm
 
-__all__ = ['SketchRNN', 'model_step']
+__all__ = ['SketchRNN', 'model_step', 'sample_conditional',
+           'sample_unconditional']
 
 
 
@@ -94,6 +99,8 @@ class SketchRNN(nn.Module):
         return params, z_mean, z_logvar
 
 
+# ---- model step code (for train/eval) ----
+
 def model_step(model, data, lengths=None):
     # model forward
     params, z_mean, z_logvar = model(data, lengths)
@@ -110,3 +117,58 @@ def model_step(model, data, lengths=None):
     loss = loss_kl + loss_draw
 
     return loss
+
+
+
+# ---- Sampling code -----
+
+@torch.no_grad()
+def sample_from_z(model, z, T=1):
+    # initialize decoder state
+    state = torch.tanh(model.init(z)).chunk(2, dim=-1)
+
+    # decode target sequences w/ attention
+    x = torch.zeros(1, 2, dtype=torch.float32, device=z.device)
+    v = torch.zeros(1, dtype=torch.long, device=z.device)
+    x_samp, v_samp = [x], [v]
+    for t in range(model.max_len):
+        # compute parameters for next step
+        v = F.one_hot(v,3).float()
+        dec_inputs = torch.cat((x,v,z), -1)
+        output, state = model.decoder.cell(dec_inputs, state)
+        mix_logp, means, scales, corrs, v_logp = model.param_layer(output, T=T)
+        # sample next step
+        v = D.Categorical(v_logp.exp()).sample() # [1]
+        if v.item() == 2:
+            break
+        x = sample_gmm(mix_logp, means, scales, corrs) # [1,2]
+        # append sample and continue
+        x_samp.append(x)
+        v_samp.append(v)
+    return torch.cat(x_samp), torch.cat(v_samp)
+
+@torch.no_grad()
+def sample_unconditional(model, T=1, device=torch.device('cpu')):
+    model.eval().to(device)
+    z = torch.randn(1, model.z_size, dtype=torch.float, device=device)
+    return sample_from_z(model, z, T=T)
+
+@torch.no_grad()
+def sample_conditional(model, data, lengths, T=1, device=torch.device('cpu')):
+    model.eval().to(device)
+    data, lengths = check_sample_inputs(data, lengths, device)
+    enc_inputs = data[:,1:,:]
+    z, _, _ = model.encoder(enc_inputs, lengths)
+    return sample_from_z(model, z, T=T)
+
+def check_sample_inputs(data, lengths, device):
+    assert isinstance(data, torch.Tensor)
+    assert data.dim() == 2
+    assert isinstance(lengths, torch.Tensor) or isinstance(lengths, numbers.Integral)
+    data = data.unsqueeze(0)
+    if torch.is_tensor(lengths):
+        assert lengths.dim() == 0
+        lengths = lengths.unsqueeze(0)
+    else:
+        lengths = torch.tensor([lengths])
+    return data.to(device), lengths.to(device)
