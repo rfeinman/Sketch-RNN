@@ -73,21 +73,15 @@ class SketchRNN(nn.Module):
         nn.init.zeros_(self.init.bias)
         self.param_layer.reset_parameters()
 
-    def forward(self, data, lengths=None):
-        max_len = self.max_len
-        # The target/expected vectors of strokes
-        enc_inputs = data[:,1:max_len+1,:]
-        # vectors of strokes to be fed to decoder (include dummy value)
-        dec_inputs = data[:,:max_len,:]
-
+    def _forward(self, enc_inputs, dec_inputs, enc_lengths=None):
         # encoder forward
-        z, z_mean, z_logvar = self.encoder(enc_inputs, lengths)
+        z, z_mean, z_logvar = self.encoder(enc_inputs, enc_lengths)
 
         # initialize decoder state
         state = torch.tanh(self.init(z)).chunk(2, dim=-1)
 
         # append z to decoder inputs
-        z_rep = z[:,None].expand(-1,max_len,-1)
+        z_rep = z[:,None].expand(-1,self.max_len,-1)
         dec_inputs = torch.cat((dec_inputs, z_rep), dim=-1)
 
         # decoder forward
@@ -97,6 +91,11 @@ class SketchRNN(nn.Module):
         params = self.param_layer(output)
 
         return params, z_mean, z_logvar
+
+    def forward(self, data, lengths=None):
+        enc_inputs = data[:,1:self.max_len+1,:] # remove sos
+        dec_inputs = data[:,:self.max_len,:] # keep sos
+        return self._forward(enc_inputs, dec_inputs, lengths)
 
 
 # ---- model step code (for train/eval) ----
