@@ -377,8 +377,8 @@ class BiLSTMLayer(nn.Module):
         state_r = torch.jit.annotate(Tuple[Tensor,Tensor], (hx[1], cx[1]))
         out_f, out_state_f = self.layer_f(inputs, state_f)
         out_r, out_state_r = self.layer_r(inputs, state_r)
-        hy = torch.cat((out_state_f[0], out_state_r[0]), 0)
-        cy = torch.cat((out_state_f[1], out_state_r[1]), 0)
+        hy = torch.stack((out_state_f[0], out_state_r[0]), 0)
+        cy = torch.stack((out_state_f[1], out_state_r[1]), 0)
 
         out = torch.cat((out_f, out_r), -1)
         out_states = torch.jit.annotate(Tuple[Tensor,Tensor], (hy, cy))
