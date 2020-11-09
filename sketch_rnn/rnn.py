@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['LSTMCell', 'LayerNormLSTMCell', 'HyperLSTMCell', 'LSTMLayer']
+__all__ = ['LSTMCell', 'LayerNormLSTMCell', 'HyperLSTMCell', 'LSTMLayer',
+           'BiLSTMLayer']
 
 
 
@@ -330,7 +331,10 @@ _cell_types = {
 # ---- LSTM Layer ----
 
 class LSTMLayer(nn.Module):
-    def __init__(self, cell, batch_first=False, reverse=False):
+    def __init__(self,
+                 cell,
+                 batch_first=False,
+                 reverse=False):
         super().__init__()
         self.cell = cell
         self.dim = 1 if batch_first else 0
@@ -354,3 +358,29 @@ class LSTMLayer(nn.Module):
             outputs = torch.flip(outputs, dims=[self.dim])
 
         return outputs, state
+
+
+class BiLSTMLayer(nn.Module):
+    def __init__(self,
+                 cell_f,
+                 cell_r,
+                 batch_first=False):
+        super().__init__()
+        self.layer_f = LSTMLayer(cell_f, batch_first)
+        self.layer_r = LSTMLayer(cell_r, batch_first, reverse=True)
+        self.dim = 1 if batch_first else 0
+
+    def forward(self, inputs, states):
+        # type: (Tensor, Tuple[Tensor, Tensor]) -> Tuple[Tensor, Tuple[Tensor, Tensor]]
+        hx, cx = states
+        state_f = torch.jit.annotate(Tuple[Tensor,Tensor], (hx[0], cx[0]))
+        state_r = torch.jit.annotate(Tuple[Tensor,Tensor], (hx[1], cx[1]))
+        out_f, out_state_f = self.layer_f(inputs, state_f)
+        out_r, out_state_r = self.layer_r(inputs, state_r)
+        hy = torch.cat((out_state_f[0], out_state_r[0]), 0)
+        cy = torch.cat((out_state_f[1], out_state_r[1]), 0)
+
+        out = torch.cat((out_f, out_r), -1)
+        out_states = torch.jit.annotate(Tuple[Tensor,Tensor], (hy, cy))
+
+        return out, out_states
