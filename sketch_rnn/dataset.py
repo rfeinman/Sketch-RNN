@@ -95,10 +95,8 @@ class SketchRNNDataset:
                 data = data.clamp(-self.limit, self.limit)
                 raw_data.append(data)
                 seq_len.append(len(data))
-        idx = np.argsort(seq_len)
-        self.strokes = []
-        for i in range(len(seq_len)):
-            self.strokes.append(raw_data[idx[i]])
+        self.sort_idx = np.argsort(seq_len)
+        self.strokes = [raw_data[ix] for ix in self.sort_idx]
         print("total drawings <= max_seq_len is %d" % count_data)
 
     def calculate_normalizing_scale_factor(self):
