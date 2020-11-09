@@ -29,6 +29,8 @@ class KLLoss(nn.Module):
         return weight
 
     def forward(self, z_mean, z_logvar):
+        if self.kl_weight == 0:
+            return torch.tensor(0., device=z_mean.device)
         loss = kl_divergence(z_mean, z_logvar)
         loss = loss.clamp(self.kl_min, float('inf'))
         loss = self.weight * loss
