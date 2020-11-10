@@ -73,11 +73,12 @@ class SketchRNN(nn.Module):
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.encoder.reset_parameters()
-        self.cell.reset_parameters()
+        reset = lambda m: (hasattr(m, 'reset_parameters') and
+                           not isinstance(m, torch.jit.ScriptModule))
+        for m in filter(reset, self.children()):
+            m.reset_parameters()
         nn.init.normal_(self.init.weight, 0., 0.001)
         nn.init.zeros_(self.init.bias)
-        self.param_layer.reset_parameters()
 
     def _forward(self, enc_inputs, dec_inputs, enc_lengths=None):
         # encoder forward

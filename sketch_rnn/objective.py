@@ -19,16 +19,20 @@ class KLLoss(nn.Module):
     def __init__(self, kl_weight=1., eta_min=0.01, R=0.99995, kl_min=0.):
         super().__init__()
         self.kl_weight = kl_weight
-        self.factor = 1. - eta_min
+        self.eta_min = eta_min
         self.R = R
         self.kl_min = kl_min
+        self.register_buffer('factor', torch.tensor(1-eta_min, dtype=torch.float))
+
+    def reset_parameters(self):
+        self.factor.fill_(1-self.eta_min)
 
     @property
     def weight(self):
-        eta = 1. - self.factor
+        eta = 1. - self.factor.item()
         weight = self.kl_weight * eta
         if self.training:
-            self.factor *= self.R
+            self.factor.mul_(self.R)
         return weight
 
     def forward(self, z_mean, z_logvar):
@@ -61,6 +65,9 @@ class DrawingLoss(nn.Module):
     def __init__(self, reg_covar=1e-6):
         super().__init__()
         self.reg_covar = reg_covar
+
+    def reset_parameters(self):
+        pass
 
     def forward(self, x, v, params):
         # unpack predicted parameters
