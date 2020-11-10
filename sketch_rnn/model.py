@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.distributions as D
 import torch.nn.utils.rnn as rnn_utils
 
-from .rnn import _cell_types, LSTMLayer
+from .rnn import _cell_types, LSTMLayer, init_orthogonal_
 from .param_layer import ParameterLayer
 from .objective import KLLoss, DrawingLoss
 from .utils import sample_gmm
@@ -20,10 +20,16 @@ class Encoder(nn.Module):
         super().__init__()
         self.rnn = nn.LSTM(5, hidden_size, bidirectional=True, batch_first=True)
         self.output = nn.Linear(2*hidden_size, 2*z_size)
+        self.hidden_size = hidden_size
         self.reset_parameters()
 
     def reset_parameters(self):
-        self.rnn.reset_parameters()
+        for i in range(2):
+            weight_ih, weight_hh, bias_ih, bias_hh = self.rnn.all_weights[i]
+            nn.init.xavier_uniform_(weight_ih)
+            init_orthogonal_(weight_hh, hsize=self.hidden_size)
+            nn.init.zeros_(bias_ih)
+            nn.init.zeros_(bias_hh)
         nn.init.normal_(self.output.weight, 0., 0.001)
         nn.init.zeros_(self.output.bias)
 
