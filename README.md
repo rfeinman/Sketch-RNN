@@ -13,3 +13,41 @@ There is an [existing PyTorch implementation](https://github.com/alexis-jacq/Pyt
 ## Development notes
 1. Encoder LSTM: I have not yet implemented recurrent dropout and layer normalization for the bi-directional encoder LSTM.
 2. Input/output dropout: The magenta library offers optional input/output dropout for the decoder LSTM, although they were not used in the Sketch-RNN paper. I have not implemented either.
+
+## Example usage
+
+I've provided a demo script `train_sketch_rnn.py` showing how to train the model. You must specify an argument `--data_dir` telling the root path where your `.npz` dataset files are located. If you would like to save the model and losses, specify the name of a save folder (to be created) with `--save_dir`.
+
+```
+python train_sketch_rnn.py --data_dir=/path/to/data/root --save_dir=model1_save --num_epochs=100
+```
+
+All Sketch-RNN hyperparameters may also be specified with command line arguments. The defaults are as follows:
+
+```python
+# architecture params
+parser.add_argument('--max_seq_len', type=int, default=250) # will be updated based on dataset
+parser.add_argument('--enc_model', type=str, default='lstm')
+parser.add_argument('--dec_model', type=str, default='layer_norm')
+parser.add_argument('--enc_rnn_size', type=int, default=256)
+parser.add_argument('--dec_rnn_size', type=int, default=512)
+parser.add_argument('--z_size', type=int, default=128)
+parser.add_argument('--num_mixture', type=int, default=20)
+parser.add_argument('--r_dropout', type=float, default=0.1)
+# loss params
+parser.add_argument('--kl_weight', type=float, default=0.5)
+parser.add_argument('--kl_weight_start', type=float, default=0.01) # eta_min
+parser.add_argument('--kl_tolerance', type=float, default=0.2) # kl_min
+parser.add_argument('--kl_decay_rate', type=float, default=0.99995) # R
+parser.add_argument('--reg_covar', type=float, default=1e-6) # R
+# training params
+parser.add_argument('--batch_size', type=int, default=100)
+parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--lr_decay', type=float, default=0.9999)
+parser.add_argument('--min_lr', type=float, default=0.00001) # Unused at the moment
+parser.add_argument('--grad_clip', type=float, default=1.0)
+# dataset & data augmentation params
+parser.add_argument('--data_set', type=str, default='cat.npz')
+parser.add_argument('--random_scale_factor', type=float, default=0.15)
+parser.add_argument('--augment_stroke_prob', type=float, default=0.10)
+```
