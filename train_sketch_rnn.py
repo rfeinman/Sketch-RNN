@@ -110,8 +110,7 @@ def train_sketch_rnn(args):
 if __name__ == '__main__':
     hp_parser = hparam_parser()
     parser = argparse.ArgumentParser(parents=[hp_parser])
-    parser.add_argument('--data_dir', type=str,
-                        default='/misc/vlgscratch4/LakeGroup/Reuben/Sketch-RNN')
+    parser.add_argument('--data_dir', type=str, required=True)
     parser.add_argument('--save_dir', type=str, default=None)
     parser.add_argument('--num_epochs', type=int, default=200)
     parser.add_argument('--num_workers', type=int, default=4)
