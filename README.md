@@ -9,7 +9,7 @@ There is an [existing PyTorch implementation](https://github.com/alexis-jacq/Pyt
 1. __Parameter initialization__. The intialization of weights & biases is important, especially for recurrent LSTM weights, which use a special form of orthogonal initialization.
 2. __Recurrent dropout__. Jacq's implementation does not use dropout of any kind (`dropout=p` is passed to `nn.LSTM`, but this has no effect for a single-layer lstm). Here, I take care to implement the recurrent dropout technique from Sketch-RNN.
 3. __Layer normalization__. My custom LSTM cells implement layer normalization exactly as per the official repo. Jacq's implementation does not include layer norm.
-4. HyperLSTM. I have also implemented the HyperLSTM model used for the Sketch-RNN decoder.
+4. __HyperLSTM__. I have also implemented the HyperLSTM model used for the Sketch-RNN decoder.
 
 ## Development notes
 The provided code runs, however, there are a few "to-do" items to correctly match the official implementation:
