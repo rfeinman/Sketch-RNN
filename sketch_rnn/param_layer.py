@@ -7,12 +7,11 @@ __all__ = ['ParameterLayer']
 
 
 class ParameterLayer(nn.Module):
-    def __init__(self, input_size, k, d=2, reg_cov=0.):
+    def __init__(self, input_size, k, d=2):
         super().__init__()
         self.linear = nn.Linear(input_size, k + 2*k*d + k + 3)
         self.k = k
         self.d = d
-        self.reg_cov = reg_cov
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -33,10 +32,6 @@ class ParameterLayer(nn.Module):
         # reshape [...,k*d] -> [...,k,d]
         means = means.reshape(*means.shape[:-1], -1, 2)
         scales = scales.reshape(*scales.shape[:-1], -1, 2)
-
-        # add tikhonov regularization
-        if self.reg_cov > 0:
-            raise NotImplementedError
 
         if T != 1:
             v_logp = F.log_softmax(v_logp/T, -1)
