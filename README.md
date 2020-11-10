@@ -1,6 +1,7 @@
 # PyTorch Sketch-RNN
 
-The goal of this repositority is to provide an accurate and efficient PyTorch implementation of the [Sketch-RNN model](https://arxiv.org/abs/1704.03477) from Ha & Eck (2017). The [official implementation](https://github.com/tensorflow/magenta/blob/master/magenta/models/sketch_rnn/README.md) is written in TensorFlow, provided through the magenta library.
+The goal of this repositority is to provide an accurate and efficient PyTorch implementation of the [Sketch-RNN model](https://arxiv.org/abs/1704.03477) from Ha & Eck (2017). 
+The [official implementation](https://github.com/tensorflow/magenta/blob/master/magenta/models/sketch_rnn/README.md) is written in TensorFlow, provided through the magenta library.
 
 ## Existing pytorch repo
 
@@ -16,13 +17,16 @@ There is an [existing PyTorch implementation](https://github.com/alexis-jacq/Pyt
 
 ## Example usage
 
-I've provided a demo script `train_sketch_rnn.py` showing how to train the model. You must specify an argument `--data_dir` telling the root path where your `.npz` dataset files are located. If you would like to save the model and losses, specify the name of a save folder (to be created) with `--save_dir`.
+I've provided a demo script `train_sketch_rnn.py` showing how to train the model. 
+You must provide an argument `--data_dir` specifying the root path where your `.npz` dataset files are located. 
+To checkpoint the model and losses during training, specify a save folder (to be created) with `--save_dir`.
 
 ```
 python train_sketch_rnn.py --data_dir=/path/to/data/root --save_dir=model1_save --num_epochs=100
 ```
 
-All Sketch-RNN hyperparameters may also be specified with command line arguments. The defaults are as follows:
+Optionally, Sketch-RNN hyperparameters can also be specified via command line arguments. 
+The parameter names and default values are as follows:
 
 ```python
 # architecture params
