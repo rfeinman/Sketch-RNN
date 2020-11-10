@@ -1,6 +1,6 @@
 # PyTorch Sketch-RNN
 
-The goal of this repositority is to provide an accurate implementation of the Sketch-RNN model in PyTorch. The [official implementation](https://github.com/tensorflow/magenta/blob/master/magenta/models/sketch_rnn/README.md) is written in TensorFlow, provided through the magenta library.
+The goal of this repositority is to provide an accurate PyTorch implementation of the [Sketch-RNN model](https://arxiv.org/abs/1704.03477) from Ha & Eck (2017). The [official implementation](https://github.com/tensorflow/magenta/blob/master/magenta/models/sketch_rnn/README.md) is written in TensorFlow, provided through the magenta library.
 
 ## Existing pytorch repo
 
