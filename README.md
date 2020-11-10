@@ -43,7 +43,7 @@ parser.add_argument('--kl_weight', type=float, default=0.5)
 parser.add_argument('--kl_weight_start', type=float, default=0.01) # eta_min
 parser.add_argument('--kl_tolerance', type=float, default=0.2) # kl_min
 parser.add_argument('--kl_decay_rate', type=float, default=0.99995) # R
-parser.add_argument('--reg_covar', type=float, default=1e-6) # R
+parser.add_argument('--reg_covar', type=float, default=1e-6) # covariance shrinkage
 # training params
 parser.add_argument('--batch_size', type=int, default=100)
 parser.add_argument('--lr', type=float, default=0.001)
