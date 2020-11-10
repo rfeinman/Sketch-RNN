@@ -33,5 +33,5 @@ def sample_gmm(mix_logp, means, scales, corrs):
     covs = compute_cov2d(scales, corrs)
     mix = D.Categorical(mix_logp.exp())
     comp = D.MultivariateNormal(means, covs)
-    x = D.MixtureSameFamily(mix, comp).sample() # [1,2]
-    return x
+    gmm = D.MixtureSameFamily(mix, comp)
+    return gmm.sample()
