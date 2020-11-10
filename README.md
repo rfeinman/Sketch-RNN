@@ -13,4 +13,3 @@ There is an [existing PyTorch implementation](https://github.com/alexis-jacq/Pyt
 ## Development notes
 1. Encoder LSTM: I have not yet implemented recurrent dropout and layer normalization for the bi-directional encoder LSTM.
 2. Input/output dropout: The magenta library offers optional input/output dropout for the decoder LSTM, although they were not used in the Sketch-RNN paper. I have not implemented either.
-3. Omniglot: There is some code in `sketch_rnn.omniglot` for training with Omniglot character drawings. This code has various dependencies from my own private libraries and it can be ignored.
