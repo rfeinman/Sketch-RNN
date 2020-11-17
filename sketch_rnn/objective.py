@@ -11,8 +11,19 @@ __all__ = ['KLLoss', 'DrawingLoss']
 
 # ---- KL Divergence loss ----
 
-def kl_divergence(mean, logvar):
-    kl = -0.5 * (1 + logvar - mean ** 2 - torch.exp(logvar))
+def kl_divergence_sn_prior(q_mean, q_logvar):
+    """KL with standard normal prior (default)"""
+    kl = -0.5 * (1 + q_logvar - q_mean ** 2 - torch.exp(q_logvar))
+    return kl.mean()
+
+def kl_divergence(q_mean, q_logvar, p_mean=None, p_logvar=None):
+    if p_mean is None and p_logvar is None:
+        return kl_divergence_sn_prior(q_mean, q_logvar)
+    if p_mean is None: p_mean = torch.zeros_like(q_mean)
+    if p_logvar is None: p_logvar = torch.zeros_like(q_logvar)
+    kl = p_logvar - q_logvar + \
+        (q_logvar.exp() + (q_mean - p_mean)**2) / p_logvar.exp() - 1
+    kl = 0.5 * kl
     return kl.mean()
 
 class KLLoss(nn.Module):
@@ -35,10 +46,10 @@ class KLLoss(nn.Module):
             self.factor.mul_(self.R)
         return weight
 
-    def forward(self, z_mean, z_logvar):
+    def forward(self, q_mean, q_logvar, p_mean=None, p_logvar=None):
         if self.kl_weight == 0:
-            return torch.tensor(0., device=z_mean.device)
-        loss = kl_divergence(z_mean, z_logvar)
+            return torch.tensor(0., device=q_mean.device)
+        loss = kl_divergence(q_mean, q_logvar, p_mean, p_logvar)
         loss = loss.clamp(self.kl_min, float('inf'))
         loss = self.weight * loss
         return loss
